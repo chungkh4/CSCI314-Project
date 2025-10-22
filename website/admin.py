@@ -14,6 +14,7 @@ def dashboard():
     
     return render_template("admin_dashboard.html", users=users)
 
+# User admin activate users
 @admin.route('/admin/user/<int:id>/activate')
 def activate_user(id):
     user = User.query.get_or_404(id)
@@ -39,9 +40,9 @@ def delete_user(user_id):
     user = User.query.get_or_404(user_id)
 
     # Prevent deleting own admin account
-    if user.id == current_user.id:
-        flash("You cannot delete your own account.", "danger")
-        return redirect(url_for('admin.dashboard'))
+    # if user.id == current_user.id:
+    #     flash("You cannot delete your own account.", "danger")
+    #     return redirect(url_for('admin.dashboard'))
 
     try:
         db.session.delete(user)

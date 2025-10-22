@@ -6,7 +6,7 @@ from . import db
 csr = Blueprint('csr', __name__)
 @csr.route('/csr/dashboard')
 def csr_dashboard():
-    # Only allow Platform Managers
+    # Only allow csrs to access dashboard
     # if not hasattr(current_user, 'role') or current_user.role != 'Platform Manager':
     #     flash("Access denied. Platform Managers only.", category='danger')
     #     return redirect(url_for('views.home'))
@@ -52,6 +52,17 @@ def assign_request(request_id):
     db.session.commit()
     flash(f'Request has been assigned to Volunteer #{volunteer_id}.', 'success')
     return redirect(url_for('csr.csr_dashboard'))
+
+
+@csr.route("/request/<int:request_id>/complete", methods=["POST"])
+def complete_request(request_id):
+    # Logic to mark the request as completed
+    req = Request.query.get_or_404(request_id)
+    req.status = "Completed"
+    db.session.commit()
+
+    flash(f"Request #{request_id} marked as completed Successfully!", "success")
+    return redirect(url_for("csr.csr_dashboard"))
 
 
 # Delete Request

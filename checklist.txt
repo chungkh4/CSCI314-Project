@@ -1,0 +1,28 @@
+PIN (Personal In Need)
+	- PIN Create Account
+	- PIN Update/Edit Account Info
+	- PIN login / logout
+	- PIN Delete Account
+	- PIN Change Password
+
+	- PIN Create Request
+	- PIN Delete Reques
+
+CSR
+	- CSR Create Account
+	- CSR Login/Logout
+	- CSR Delete Account
+	- CSR Edit/update Info
+	- CSR Dashboard
+		- Accept Request
+		- Search/Filter Request
+
+Admin
+- Admin Dashboard 
+	- Suspend/Delete/View user
+	- Search User/Filter by role
+
+Platform Manager
+-
+Volunteer
+- 

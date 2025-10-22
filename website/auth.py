@@ -8,7 +8,7 @@ from flask_login import login_user, logout_user, login_required, current_user
 # url holders
 auth = Blueprint('auth', __name__)
 
-# Create Account For PIN
+# Create Account 
 @auth.route('/signup', methods=['GET', 'POST'])
 def sign_up():
     if request.method == 'POST':
@@ -42,7 +42,8 @@ def sign_up():
 
             login_user(new_user, remember=True)
             flash('Account created!', category='success')
-            return redirect(url_for('views.home'))
+
+            return redirect(url_for('auth.login'))
     
     return render_template("sign_up.html")
 
@@ -84,7 +85,7 @@ def logout():
 @auth.route('/delete-account', methods=['GET', 'POST'])
 @login_required
 def delete_account():
-    user = current_user  # Get the logged-in user
+    user = current_user  # Get the logged-in(current) user
     
     try:
         # Remove user from the database
@@ -101,7 +102,7 @@ def delete_account():
         db.session.rollback()
         flash('An error occurred while deleting your account. Please try again.', category='danger')
         print("Error deleting account:", e)
-        return redirect(url_for('views.pin_profile'))
+        return redirect(url_for('views.home'))
 
 # change password
 @auth.route('/change-password', methods=['GET', 'POST'])

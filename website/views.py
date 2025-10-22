@@ -67,9 +67,9 @@ def pin_profile():
 @views.route('/edit-profile', methods=['GET', 'POST'])
 @login_required
 def edit_profile():
-    if current_user.role != 'PIN':
-        flash("Access denied.", "danger")
-        return redirect(url_for('views.home'))
+    # if current_user.role != 'PIN':
+    #     flash("Access denied.", "danger")
+    #     return redirect(url_for('views.home'))
 
     if request.method == 'POST':
         name = request.form.get('name')
@@ -91,7 +91,7 @@ def edit_profile():
         db.session.commit()
 
         flash("Profile updated successfully!", "success")
-        return redirect(url_for('views.pin_profile'))
+        return redirect(url_for('views.home'))
 
     return render_template('edit_profile.html', user=current_user)
 
