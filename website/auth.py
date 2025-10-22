@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request
 # url holders
 auth = Blueprint('auth', __name__)
 
-
+# test route
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     data = request.form
