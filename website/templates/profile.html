@@ -1,0 +1,143 @@
+{% extends "base.html" %} 
+{% block title %}PIN Profile{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-12">
+
+            <!-- Profile Header Card -->
+            <div class="card shadow-lg border-0 mb-4">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 120px; height: 120px;">
+                            <span class="text-white display-3 fw-bold">{{ user.name[0].upper() }}</span>
+                        </div>
+                        <h2 class="fw-bold mb-2">{{ user.name }}</h2>
+                        <p class="text-muted">{{ user.role }}</p>
+                        <span class="badge 
+                            {% if user.status == 'Active' %} bg-success 
+                            {% elif user.status == 'Pending' %} bg-warning text-dark 
+                            {% elif user.status == 'Suspended' %} bg-danger 
+                            {% else %} bg-secondary {% endif %}">
+                            {{ user.status }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Left Column -->
+                <div class="col-lg-4">
+                    <!-- Profile Information -->
+                    <div class="card shadow-lg border-0 mb-4">
+                        <div class="card-body p-4">
+                            <h4 class="fw-bold mb-4">Profile Information</h4>
+                            <div class="mb-3">
+                                <p class="text-muted mb-1 small">Username</p>
+                                <p class="fw-semibold mb-0">{{ user.name }}</p>
+                            </div>
+                            <hr>
+                            <div class="mb-3">
+                                <p class="text-muted mb-1 small">Email Address</p>
+                                <p class="fw-semibold mb-0">{{ user.email }}</p>
+                            </div>
+                            <hr>
+                            <div class="mb-3">
+                                <p class="text-muted mb-1 small">Member Since</p>
+                                <p class="fw-semibold mb-0">{{ user.date_created.strftime('%B %d, %Y') }}</p>
+                            </div>
+                            <hr>
+                            <div>
+                                <p class="text-muted mb-1 small">Account Type</p>
+                                <p class="fw-semibold mb-0">{{ user.role }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="col-lg-8">
+                    <div class="card shadow-lg border-0">
+                        <div class="card-body p-4">
+                            {% if user.status == "Pending" or user.status == "Suspended" %}
+                                <div class="text-center py-5">
+                                    <i class="bi bi-lock" style="font-size: 4rem; color: #ccc;"></i>
+                                    <h4 class="fw-bold mt-3">Account Pending or Suspended</h4>
+                                    <p class="text-muted">
+                                        This account is currently inactive.
+                                    </p>
+                                </div>
+                            {% else %}
+                                {% if current_user.id == user.id %}
+                                    <!-- Owner View -->
+                                    <div class="d-flex justify-content-between align-items-center mb-4">
+                                        <h4 class="fw-bold mb-0">My Requests</h4>
+                                        <button class="btn btn-primary" onclick="location.href='/create-request'">+ New Request</button>
+                                    </div>
+                                {% else %}
+                                    <!-- Other user viewing this profile -->
+                                    <h4 class="fw-bold mb-4">Requests by {{ user.name }}</h4>
+                                {% endif %}
+
+                                {% if requests %}
+                                    {% for request in requests %}
+                                        <div class="card mb-3 border">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <h5 class="fw-bold mb-1">{{ request.title }}</h5>
+                                                    {% if request.status == 'pending' %}
+                                                        <span class="badge bg-warning text-dark">Pending</span>
+                                                    {% elif request.status == 'accepted' %}
+                                                        <span class="badge bg-info">Accepted</span>
+                                                    {% elif request.status == 'completed' %}
+                                                        <span class="badge bg-success">Completed</span>
+                                                    {% endif %}
+                                                </div>
+
+                                                <p class="text-muted mb-3">
+                                                    {{ request.description[:100] }}{% if request.description|length > 100 %}...{% endif %}
+                                                </p>
+
+                                                <div class="row text-muted small mb-3">
+                                                    <div class="col-md-6">
+                                                        <i class="bi bi-calendar"></i> Created: {{ request.date_created.strftime('%b %d, %Y') }}
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <i class="bi bi-eye"></i> Views: {{ request.view_count }}
+                                                    </div>
+                                                </div>
+
+                                                {% if current_user.id == user.id %}
+                                                    <!-- Only show action buttons to owner -->
+                                                    <div class="d-flex gap-2">
+                                                        <button class="btn btn-sm btn-outline-primary" onclick="location.href='/request/{{ request.id }}'">View</button>
+                                                        <button class="btn btn-sm btn-outline-secondary" onclick="location.href='/request/{{ request.id }}/edit'">Edit</button>
+                                                        <button class="btn btn-sm btn-outline-danger" onclick="if(confirm('Are you sure you want to delete this request?')) location.href='/request/{{ request.id }}/delete'">Delete</button>
+                                                    </div>
+                                                {% else %}
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="location.href='/request/{{ request.id }}'">View</button>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <div class="text-center py-5">
+                                        <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+                                        <h5 class="text-muted">No requests found</h5>
+                                        {% if current_user.id == user.id %}
+                                            <p class="text-muted">Create your first request to get started</p>
+                                            <button class="btn btn-primary mt-2" onclick="location.href='/create-request'">Create Request</button>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

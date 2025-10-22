@@ -1,0 +1,136 @@
+{% extends "base.html" %} 
+{% block title %}CSR Profile{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-10 col-lg-12">
+            <!-- Profile Header Card -->
+            <div class="card shadow-lg border-0 mb-4">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 120px; height: 120px;">
+                            <span class="text-white display-3 fw-bold">{{ current_user.name[0].upper() }}</span>
+                        </div>
+                        <h2 class="fw-bold mb-2">{{ current_user.name }}</h2>
+                        <p class="text-muted">{{ current_user.role }}</p>
+                        <span class="badge bg-success">{{ 'Active' if current_user.is_active else 'Suspended' }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <!-- Left Column: Profile Info & Settings -->
+                <div class="col-lg-4">
+                    <!-- Profile Information Card -->
+                    <div class="card shadow-lg border-0 mb-4">
+                        <div class="card-body p-4">
+                            <h4 class="fw-bold mb-4">Profile Information</h4>
+                            
+                            <div class="mb-3">
+                                <p class="text-muted mb-1 small">Username</p>
+                                <p class="fw-semibold mb-0">{{ current_user.name }}</p>
+                            </div>
+
+                            <hr>
+
+                            <div class="mb-3">
+                                <p class="text-muted mb-1 small">Email Address</p>
+                                <p class="fw-semibold mb-0">{{ current_user.email }}</p>
+                            </div>
+
+                            <hr>
+
+                            <div class="mb-3">
+                                <p class="text-muted mb-1 small">Member Since</p>
+                                <p class="fw-semibold mb-0">{{ current_user.date_created.strftime('%B %d, %Y') }}</p>
+                            </div>
+
+                            <hr>
+
+                            <div>
+                                <p class="text-muted mb-1 small">Account Type</p>
+                                <p class="fw-semibold mb-0">{{ current_user.role }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Account Settings Card -->
+                    <div class="card shadow-lg border-0">
+                        <div class="card-body p-4">
+                            <h4 class="fw-bold mb-4">Account Settings</h4>
+                            
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-primary" onclick="location.href='/edit-profile'">
+                                    Edit Profile
+                                </button>
+                                <button class="btn btn-outline-secondary" onclick="location.href='/change-password'">
+                                    Change Password
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column: Assigned Requests -->
+                <div class="col-lg-8">
+                    <div class="card shadow-lg border-0">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="fw-bold mb-0">Assigned Requests</h4>
+                            </div>
+
+                            {% if assigned_requests %}
+                                <!-- Requests List -->
+                                {% for request in assigned_requests %}
+                                <div class="card mb-3 border">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <h5 class="fw-bold mb-1">{{ request.title }}</h5>
+                                            {% if request.status == 'pending' %}
+                                                <span class="badge bg-warning text-dark">Pending</span>
+                                            {% elif request.status == 'accepted' %}
+                                                <span class="badge bg-info">Accepted</span>
+                                            {% elif request.status == 'completed' %}
+                                                <span class="badge bg-success">Completed</span>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <p class="text-muted mb-3">{{ request.description[:100] }}{% if request.description|length > 100 %}...{% endif %}</p>
+                                        
+                                        <div class="row text-muted small mb-3">
+                                            <div class="col-md-6">
+                                                <i class="bi bi-calendar"></i> Created: {{ request.date_created.strftime('%b %d, %Y') }}
+                                            </div>
+                                            <div class="col-md-6">
+                                                <i class="bi bi-person"></i> Submitted by: {{ request.pin.pin_name }}
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex gap-2">
+                                            <button class="btn btn-sm btn-outline-primary" onclick="location.href='/admin/request/{{ request.id }}'">
+                                                View Details
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info" onclick="location.href='/admin/request/{{ request.id }}/update-status'">
+                                                Update Status
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <div class="mb-3">
+                                        <i class="bi bi-inbox" style="font-size: 4rem; color: #ccc;"></i>
+                                    </div>
+                                    <h5 class="text-muted">No assigned requests</h5>
+                                    <p class="text-muted">You will see requests assigned to you here</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
