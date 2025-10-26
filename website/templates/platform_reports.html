@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Reports</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;margin:24px}
+    h1{margin:0 0 16px}
+    form{display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:18px}
+    label{display:flex;flex-direction:column;font-size:14px}
+    input,select,button{padding:8px 10px;font-size:14px}
+    table{border-collapse:collapse;width:100%;margin-top:10px}
+    th,td{border:1px solid #ddd;padding:8px;text-align:left}
+    th{background:#f6f7f8}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+  </style>
+</head>
+<body>
+  <h1>Generate & Export Reports</h1>
+
+  <!-- Generate form -->
+  <form method="post" action="{{ url_for('platform.platform_reports') }}">
+    <label>
+      Start date
+      <input type="date" name="start_date"
+             value="{{ (start_date|string) if start_date else '' }}">
+    </label>
+    <label>
+      End date
+      <input type="date" name="end_date"
+             value="{{ (end_date|string) if end_date else '' }}">
+    </label>
+    <label>
+      Report type
+      <select name="report_type">
+        <option value="summary" {{ 'selected' if report_type!='detailed' }}>Summary</option>
+        <option value="detailed" {{ 'selected' if report_type=='detailed' }}>Detailed</option>
+      </select>
+    </label>
+    <button type="submit">Generate</button>
+  </form>
+
+  <!-- Export CSV form -->
+  <form method="post" action="{{ url_for('platform.platform_reports_export') }}">
+    <input type="hidden" name="start_date" value="{{ (start_date|string) if start_date else '' }}">
+    <input type="hidden" name="end_date" value="{{ (end_date|string) if end_date else '' }}">
+    <input type="hidden" name="report_type" value="{{ report_type or 'summary' }}">
+    <button type="submit">Download CSV</button>
+  </form>
+
+  {% if report_type == 'detailed' and detailed %}
+    <h2>Detailed</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th><th>Title</th><th>Category</th><th>Status</th><th>Created On</th><th>Views</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for r in detailed %}
+        <tr>
+          <td>{{ r.id }}</td>
+          <td>{{ r.title }}</td>
+          <td>{{ r.category }}</td>
+          <td>{{ r.status }}</td>
+          <td>{{ r.created_on }}</td>
+          <td>{{ r.views }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% elif summary %}
+    <h2>Summary</h2>
+    <table>
+      <tbody>
+        <tr><th>Total Requests</th><td>{{ summary.total_requests }}</td></tr>
+      </tbody>
+    </table>
+
+    <h3>By Category</h3>
+    <table>
+      <thead><tr><th>Category</th><th>Count</th></tr></thead>
+      <tbody>
+      {% for k, v in summary.by_category %}
+        <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+
+    <h3>By Status</h3>
+    <table>
+      <thead><tr><th>Status</th><th>Count</th></tr></thead>
+      <tbody>
+      {% for k, v in summary.by_status %}
+        <tr><td>{{ k }}</td><td>{{ v }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+</body>
+</html>
+
+
+</html>
