@@ -49,10 +49,10 @@
                             <td>{{ user.name }}</td>
                             <td>{{ user.email }}</td>
                             <td>
-                                {% if user.is_admin %}
-                                    <span class="badge bg-danger">Admin</span>
+                                {% if user.role == 'Admin' %}
+                                    <span class="badge bg-danger">{{ user.role }}</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">{{ user.role }}</span>
+                                    <span class="badge bg-primary">{{ user.role }}</span>
                                 {% endif %}
                             </td>
                             <td>
@@ -61,12 +61,13 @@
                                 {% elif user.status == 'Pending' %}
                                     <span class="badge bg-warning text-dark">Pending</span>
                                 {% elif user.status == 'Suspended' %}
-                                    <span class="badge bg-secondary">Suspended</span>
+                                    <span class="badge bg-danger">Suspended</span>
                                 {% endif %}
                             </td>
 
                             <td>
-                                <!-- Dropdown Menu -->
+                                <!-- Account Control -->
+                                {% if user.role != "Admin" %}
                                 <div class="dropdown position-static">
                                     <button class="btn btn-outline-primary btn-sm dropdown-toggle" 
                                             type="button" 
@@ -75,40 +76,48 @@
                                             aria-expanded="false">
                                         Actions
                                     </button>
-                                    <ul class="dropdown-menu shadow" aria-labelledby="actionDropdown{{ user.id }}">
-                                        {% if user.status != 'Active' %}
-                                        <li>
-                                            <a class="dropdown-item" href="/admin/user/{{ user.id }}/activate">
-                                                Activate
-                                            </a>
-                                        </li>
-                                        {% endif %}
-                                        
-                                        {% if user.status != 'Suspended' %}
-                                        <li>
-                                            <a class="dropdown-item" href="/admin/user/{{ user.id }}/suspend">
-                                                Suspend
-                                            </a>
-                                        </li>
-                                        {% endif %}
+                                    
+                                        <ul class="dropdown-menu shadow" aria-labelledby="actionDropdown{{ user.id }}">
+                                            {% if user.status != 'Active' %}
+                                            <li>
+                                                <a class="dropdown-item" href="/admin/user/{{ user.id }}/activate">
+                                                    Activate
+                                                </a>
+                                            </li>
+                                            {% endif %}
+                                            
+                                            {% if user.status != 'Suspended' %}
+                                            <li>
+                                                <a class="dropdown-item" href="/admin/user/{{ user.id }}/suspend">
+                                                    Suspend
+                                                </a>
+                                            </li>
+                                            {% endif %}
 
-                                        <li>
-                                            <a class="dropdown-item" href="/profile/{{ user.id }}">
-                                                View Profile
-                                            </a>
-                                        </li>
+                                            <li>
+                                                <a class="dropdown-item" href="/profile/{{ user.id }}">
+                                                    View Profile
+                                                </a>
+                                            </li>
 
-                                        <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <a class="dropdown-item" href="/edit-profile/{{ user.id }}">
+                                                    Edit Profile
+                                                </a>
+                                            </li>
 
-                                        <li>
-                                            <a class="dropdown-item text-danger" 
-                                               href="/admin/user/{{ user.id }}/delete" 
-                                               onclick="return confirm('Are you sure you want to delete {{ user.email }}? This action cannot be undone!');">
-                                                Delete User
-                                            </a>
-                                        </li>
-                                    </ul>
+                                            <li><hr class="dropdown-divider"></li>
+
+                                            <li>
+                                                <a class="dropdown-item text-danger" 
+                                                href="/admin/user/{{ user.id }}/delete" 
+                                                onclick="return confirm('Are you sure you want to delete {{ user.email }}? This action cannot be undone!');">
+                                                    Delete User
+                                                </a>
+                                            </li>
+                                        </ul>
                                 </div>
+                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}

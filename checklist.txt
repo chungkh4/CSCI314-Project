@@ -8,6 +8,8 @@ PIN (Personal In Need)
 	- PIN Create Request
 	- PIN Delete Reques
 
+	- PIN Write Review for completed request.
+
 CSR
 	- CSR Create Account
 	- CSR Login/Logout
@@ -16,13 +18,23 @@ CSR
 	- CSR Dashboard
 		- Accept Request
 		- Search/Filter Request
+	- CSR Assign to Volunteer
+	- CSR Delete Request
 
 Admin
 - Admin Dashboard 
-	- Suspend/Delete/View user
+	- Suspend/Delete/View user/Update User Account
 	- Search User/Filter by role
 
 Platform Manager
--
+- Account Creation 
+- Account Login/Logout
+- Create Service Category
+- Delete Service Category
+
 Volunteer
-- 
+- Create Account
+- Login/logout
+- Accpet/decline the assigned request 
+- Volunteer Dashboard
+- Completed Request

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-lg border-0">
+        <div class="card-body p-4">
+            <h4 class="fw-bold mb-4">Edit Request</h4>
+            <form method="POST">
+                <!-- Title -->
+                <div class="mb-3">
+                    <label class="form-label">Title</label>
+                    <input type="text" name="title" class="form-control" value="{{ req.title }}" required>
+                </div>
+
+                <!-- Category -->
+                <div class="mb-3">
+                    <label class="form-label">Category</label>
+                    <select name="category_id" class="form-select" required>
+                        <option value="">Select Category</option>
+                        {% for category in categories %}
+                        <option value="{{ category.id }}" {% if category.id == req.category_id %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Description -->
+                <div class="mb-3">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" class="form-control" rows="4" required>{{ req.description }}</textarea>
+                </div>
+
+                <!-- Scheduled Date & Time -->
+                <div class="mb-3">
+                    <label class="form-label">Scheduled Date & Time</label>
+                    <input type="datetime-local" name="scheduled_datetime" class="form-control"
+                           value="{{ req.scheduled_datetime.strftime('%Y-%m-%dT%H:%M') if req.scheduled_datetime else '' }}" required>
+                </div>
+
+                <!-- Buttons -->
+                <button type="submit" class="btn btn-primary">Update Request</button>
+                <a href="{{ url_for('views.home') }}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

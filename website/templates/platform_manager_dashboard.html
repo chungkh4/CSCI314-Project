@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}Platform Manager Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="mb-4">Platform Manager Dashboard</h2>
+
+    <!-- Category Management Section -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title">Add Category</h5>
+            <form action="{{ url_for('platform.add_category') }}" method="POST" class="row g-3">
+                <div class="col-md-5">
+                    <input type="text" name="name" class="form-control" placeholder="Category name">
+                </div>
+                <div class="col-md-5">
+                    <input type="text" name="description" class="form-control" placeholder="Description">
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100" type="submit">Add</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Skill List -->
+    <div class="card mb-5 shadow-sm">
+        <div class="card-body">
+            <h5 class="card-title mb-3">Existing Categories</h5>
+            {% if categories %}
+            <ul class="list-group list-group-flush">
+                {% for category in categories %}
+               <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>{{ category.name }} — <small class="text-muted">{{ category.description or 'No description' }}</small></span>
+                    <form action="{{ url_for('platform.delete_category', category_id=category.id) }}" method="POST" style="margin:0;">
+                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+                    </form>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-muted mb-0">No skills added yet.</p>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <h3 class="text-primary">{{ total_volunteers }}</h3>
+                    <p class="text-muted mb-0">Total Volunteers</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <h3 class="text-success">{{ total_completed_tasks }}</h3>
+                    <p class="text-muted mb-0">Completed Tasks</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <h3 class="text-warning">
+                        <i class="bi bi-star-fill"></i> {{ "%.1f"|format(overall_avg_rating) if overall_avg_rating else 'N/A' }}
+                    </h3>
+                    <p class="text-muted mb-0">Average Rating</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <h3 class="text-info">{{ total_reviews }}</h3>
+                    <p class="text-muted mb-0">Total Reviews</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rating Distribution -->
+    {% if rating_distribution %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Rating Distribution</h5>
+        </div>
+        <div class="card-body">
+            {% for rating, count in rating_distribution.items() %}
+            <div class="mb-3">
+                <div class="d-flex justify-content-between mb-1">
+                    <span>
+                        {% for i in range(rating) %}
+                            <i class="bi bi-star-fill text-warning"></i>
+                        {% endfor %}
+                    </span>
+                    <span class="text-muted">{{ count }} reviews ({{ "%.1f"|format((count / total_reviews * 100) if total_reviews > 0 else 0) }}%)</span>
+                </div>
+                <div class="progress" style="height: 20px;">
+                    <div class="progress-bar bg-warning" role="progressbar"
+                         aria-valuenow="{{ count }}" aria-valuemin="0" aria-valuemax="{{ total_reviews }}">
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Volunteer Performance Table -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-people"></i> Volunteer Performance</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Volunteer Name</th>
+                            <th>Skill</th>
+                            <th>Tasks Completed</th>
+                            <th>Reviews Received</th>
+                            <th>Average Rating</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for vol in volunteer_stats %}
+                        <tr>
+                            <td>{{ vol.name }}</td>
+                            <td>
+                                <span class="badge bg-info">
+                                    {{ vol.skill if vol.skill else 'No Skill' }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-success">{{ vol.tasks_completed }}</span>
+                            </td>
+                            <td>{{ vol.review_count }}</td>
+                            <td>
+                                {% if vol.avg_rating %}
+                                    <span class="text-warning">
+                                        <i class="bi bi-star-fill"></i> {{ "%.1f"|format(vol.avg_rating) }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">No reviews</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if vol.avg_rating %}
+                                    {% if vol.avg_rating >= 4.5 %}
+                                        <span class="badge bg-success">Excellent</span>
+                                    {% elif vol.avg_rating >= 3.5 %}
+                                        <span class="badge bg-primary">Good</span>
+                                    {% elif vol.avg_rating >= 2.5 %}
+                                        <span class="badge bg-warning">Average</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Needs Improvement</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-secondary">New</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Reviews -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="bi bi-chat-left-text"></i> Recent Reviews</h5>
+        </div>
+        <div class="card-body">
+            {% if recent_reviews %}
+                {% for review in recent_reviews %}
+                <div class="card mb-3 border-light">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h6 class="mb-1">{{ review.volunteer_name }}</h6>
+                                <small class="text-muted">Task: {{ review.task_title }}</small>
+                            </div>
+                            <div class="text-end">
+                                <div class="text-warning mb-1">
+                                    {% for i in range(1, 6) %}
+                                        {% if i <= review.rating %}
+                                            <i class="bi bi-star-fill"></i>
+                                        {% else %}
+                                            <i class="bi bi-star"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                                <small class="text-muted">{{ review.date.strftime('%b %d, %Y') }}</small>
+                            </div>
+                        </div>
+                        {% if review.comment %}
+                        <p class="mb-2 fst-italic">"{{ review.comment }}"</p>
+                        {% endif %}
+                        <small class="text-muted">By: {{ review.reviewer_name }}</small>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info text-center">
+                    <i class="bi bi-info-circle"></i> No reviews available yet.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+{% endblock %}

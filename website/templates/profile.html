@@ -60,11 +60,11 @@
                     <div class="card shadow-lg border-0">
                         <div class="card-body p-4">
 
-                            {% if user.role == "CSR" %}
+                            {% if user.role == "CSR" or user.role == "Platform Manager" %}
                                 <!-- Hide requests if viewing a CSR profile -->
                                 <div class="text-center py-5">
                                     <i class="bi bi-slash-circle" style="font-size: 4rem; color: #ccc;"></i>
-                                    <h4 class="text-muted">Requests are not available for CSR accounts.</h4>
+                                    <h4 class="text-muted">Requests are not available for this account.</h4>
                                 </div>
 
                             {% elif user.status == "Pending" or user.status == "Suspended" %}

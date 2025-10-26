@@ -1,22 +1,27 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for 
-from .models import User
+import datetime
+from flask import Blueprint, Request, render_template, request, flash, redirect, url_for 
+from .models import Category, User, Volunteer
 from . import db
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from flask_login import login_user, logout_user, login_required, current_user
 
-# url holders
 auth = Blueprint('auth', __name__)
 
-# Create Account 
+# CREATE Account 
 @auth.route('/signup', methods=['GET', 'POST'])
 def sign_up():
+
+    categories = Category.query.all()
+
     if request.method == 'POST':
         email = request.form.get('email')
         password1 = request.form.get('password1')
         password2 = request.form.get('password2')
         username = request.form.get('userName')
         role = request.form.get('role')
+
+        category_id = request.form.get('categories') 
 
         user = User.query.filter_by(email=email).first()
         if user:
@@ -40,14 +45,21 @@ def sign_up():
             db.session.add(new_user)
             db.session.commit()
 
-            login_user(new_user, remember=True)
+            if role == 'Volunteer':
+                # Create Volunteer profile
+                new_volunteer = Volunteer(user_id=new_user.id, category_id = int(category_id) if category_id else None)  #
+                                
+                db.session.add(new_volunteer)
+                db.session.commit()
+
+            # login_user(new_user, remember=True)
             flash('Account created!', category='success')
 
             return redirect(url_for('auth.login'))
     
-    return render_template("sign_up.html")
+    return render_template('sign_up.html', categories=categories)
 
-# PIN Login
+# LOGIN User Account
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -73,26 +85,45 @@ def login():
     
     return render_template("login.html")
 
-# PIN Logout
+# Logout User Account
 @auth.route('/logout')
 def logout():
     logout_user()
     flash('Logged out successfully!', category='success')
     return redirect(url_for('auth.login'))
 
-
-# DELETE ACCOUNT
+# DELETE Users Account
 @auth.route('/delete-account', methods=['GET', 'POST'])
 @login_required
 def delete_account():
     user = current_user  # Get the logged-in(current) user
+
+    if user.role == 'Platform Manager':
+        flash('Platform Manager accounts cannot be deleted. Please contact system administrator.', category='danger')
+        return redirect(url_for('views.manager_profile'))
     
     try:
-        # Remove user from the database
+        # 1. Delete all user's requests first
+        Request.query.filter_by(user_id=user.id).delete()
+        
+        # 2. If user is a volunteer, handle volunteer profile
+        if user.role == 'Volunteer' and user.volunteer_profile:
+            volunteer = user.volunteer_profile
+            
+            # Unassign all requests assigned to this volunteer
+            assigned_requests = Request.query.filter_by(volunteer_id=volunteer.id).all()
+            for req in assigned_requests:
+                req.volunteer_id = None
+                req.status = 'Pending'  # Reset status back to Pending
+            
+            # 3. Delete volunteer profile
+            db.session.delete(volunteer)
+        
+        # 4. Finally, delete the user
         db.session.delete(user)
         db.session.commit()
 
-        # Log them out
+        # 5. Log them out
         logout_user()
 
         flash('Your account has been deleted successfully.', category='success')
@@ -104,7 +135,7 @@ def delete_account():
         print("Error deleting account:", e)
         return redirect(url_for('views.home'))
 
-# change password
+# User changes password
 @auth.route('/change-password', methods=['GET', 'POST'])
 @login_required
 def change_password():

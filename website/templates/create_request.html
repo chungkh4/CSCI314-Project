@@ -12,12 +12,11 @@
 
                 <div class="mb-3">
                     <label class="form-label">Category</label>
-                    <select name="category" class="form-select" required>
-                        <option value="">Select Category</option>
-                        <option>Community</option>
-                        <option>Environment</option>
-                        <option>Health</option>
-                        <option>Education</option>
+                    <select name="category_id" class="form-select" required>
+                        <option value="category_id">Select Category</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
                     </select>
                 </div>
 
@@ -26,7 +25,19 @@
                     <textarea name="description" class="form-control" rows="4" required></textarea>
                 </div>
 
+                <div class="mb-3">
+                    <label class="form-label">Schedule Time</label>
+                    <input  type="datetime-local" 
+                        name="scheduled_datetime" 
+                        class="form-control" 
+                        required
+                        min="{{ now_str }}">
+                </div>
+
                 <button class="btn btn-primary">Submit Request</button>
+                <button class="btn btn-danger" onclick="location.href='/'">
+                    Cancel
+                </button>
             </form>
         </div>
     </div>

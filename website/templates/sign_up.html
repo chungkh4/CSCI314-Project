@@ -1,13 +1,13 @@
 {% extends "base.html" %} 
 {% block title %}Sign up{% endblock %}
-{% block content%}
+{% block content %}
 <div class="container">
     <div class="row justify-content-center mt-5">
         <div class="col-md-8 col-lg-7">
             <div class="card shadow-lg border-0">
                 <div class="card-body p-5">
                     <div class="text-center mb-4">
-                        <h2 class="fw-bold">Sign Up</h2>
+                        <h3>Sign Up</h3>
                         <p>Create Your Account</p>
                     </div>
 
@@ -20,7 +20,8 @@
                                 class="form-control form-control-lg" 
                                 id="email" 
                                 name="email" 
-                                placeholder="Enter email">
+                                placeholder="Enter email" 
+                                required>
                         </div>
 
                         <!-- User Name -->
@@ -31,8 +32,8 @@
                                 class="form-control form-control-lg" 
                                 id="userName" 
                                 name="userName" 
-                                placeholder="Enter Full Name"
-                                >
+                                placeholder="Enter Full Name" 
+                                required>
                         </div>
 
                         <!-- Password -->
@@ -43,8 +44,8 @@
                                 class="form-control form-control-lg" 
                                 id="password1" 
                                 name="password1" 
-                                placeholder="Enter password"
-                                >
+                                placeholder="Enter password" 
+                                required>
                         </div>
 
                         <!-- Confirm Password -->
@@ -55,8 +56,8 @@
                                 class="form-control form-control-lg" 
                                 id="password2" 
                                 name="password2" 
-                                placeholder="Confirm password"
-                                >
+                                placeholder="Confirm password" 
+                                required>
                         </div>
 
                         <!-- Role Selection -->
@@ -65,13 +66,27 @@
                             <select 
                                 class="form-select form-select-lg" 
                                 id="role" 
-                                name="role"
+                                name="role" 
                                 required>
                                 <option value="" disabled selected>Register As</option>
                                 <option value="Platform Manager">Platform Manager</option>
                                 <option value="CSR">CSR</option>
                                 <option value="PIN">Person In Need (PIN)</option>
-                                <option value="volunter">Volunteer</option>
+                                <option value="Volunteer">Volunteer</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group mb-3" id="categoryField" style="display:none;">
+                            <label for="categories" class="form-label fw-semibold">Select Category</label>
+                            <select class="form-select form-select-lg" id="categories" name="categories">
+                                <option value="" disabled selected>Select Category</option>
+                                {% if categories %}
+                                    {% for category in categories %}
+                                    <option value="{{ category.id }}">{{ category.name }}</option>
+                                    {% endfor %}
+                                {% else %}
+                                    <option value="" disabled>No categories available</option>
+                                {% endif %}
                             </select>
                         </div>
 
@@ -91,4 +106,12 @@
         </div>
     </div>
 </div>
+
+<!-- JavaScript to toggle category buttons -->
+<script>
+document.getElementById('role').addEventListener('change', function() {
+    const categoryField = document.getElementById('categoryField');
+    categoryField.style.display = (this.value === 'Volunteer') ? 'block' : 'none';
+});
+</script>
 {% endblock %}

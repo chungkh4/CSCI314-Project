@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block title %}Volunteer Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2>Welcome, {{ current_user.name }}!</h2>
+            <p class="text-muted">
+                Skill: <span class="badge bg-info">{{ volunteer.category.name if volunteer.category else 'No skill assigned' }}</span>
+                | Completed Tasks: <span class="badge bg-success">{{ volunteer.total_tasks_completed }}</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Performance Summary -->
+    {% if avg_rating %}
+    <div class="card mb-4 border-primary">
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <h3 class="text-primary mb-0">
+                        <i class="bi bi-star-fill text-warning"></i> {{ "%.1f"|format(avg_rating) }}
+                    </h3>
+                    <p class="text-muted mb-0">Average Rating</p>
+                </div>
+                <div class="col-md-4">
+                    <h3 class="text-success mb-0">{{ total_reviews }}</h3>
+                    <p class="text-muted mb-0">Total Reviews</p>
+                </div>
+                <div class="col-md-4">
+                    <h3 class="text-info mb-0">{{ volunteer.total_tasks_completed }}</h3>
+                    <p class="text-muted mb-0">Tasks Completed</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+
+    <!-- Navigation Tabs -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#upcoming" type="button">
+                Upcoming Requests <span class="badge bg-primary">{{ upcoming_requests|length }}</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#completed" type="button">
+                Completed <span class="badge bg-success">{{ completed_requests|length }}</span>
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content">
+        
+        <!-- UPCOMING REQUESTS TAB -->
+        <div class="tab-pane fade show active" id="upcoming" role="tabpanel">
+            {% if upcoming_requests %}
+                {% for req in upcoming_requests %}
+                <div class="card mb-3 shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">{{ req.title }}</h5>
+                        <span class="badge 
+                            {% if req.status == 'Assigned' %} bg-warning text-dark
+                            {% elif req.status == 'Accepted' %} bg-info
+                            {% else %} bg-secondary
+                            {% endif %}">
+                            {{ req.status }}
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong>Category:</strong> <span class="badge bg-info">{{ req.category.name if req.category else 'N/A' }}</span></p>
+                                <p class="mb-2"><strong>Requested by:</strong> {{ req.user.name }}</p>
+                                <p class="mb-2"><strong>Email:</strong> {{ req.user.email }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong>Date:</strong> {{ req.date_created.strftime('%B %d, %Y') }}</p>
+                                <p class="mb-2"><strong>Views:</strong> {{ req.view_count }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Description:</strong>
+                            <p class="mt-2">{{ req.description }}</p>
+                        </div>
+
+                        <div class="d-flex gap-2 align-items-center">
+                            <a href="{{ url_for('views.view_request', id=req.id) }}" class="btn btn-outline-primary btn-sm">
+                                <i class="bi bi-eye"></i> View Details
+                            </a>
+                            {% if req.status == 'Assigned' %}
+                                <form action="{{ url_for('volunteer.volunteer_accept_task', request_id=req.id) }}" method="POST" style="display: inline;">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="bi bi-check-circle"></i> Accept & Start Task
+                                    </button>
+                                </form>
+                                <form action="{{ url_for('volunteer.decline_task', request_id=req.id) }}" method="POST" style="display: inline;">
+                                    <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Are you sure you want to decline this task?')">
+                                        <i class="bi bi-x-circle"></i> Decline
+                                    </button>
+                                </form>
+                            {% elif req.status == 'In Progress' %}
+                                <form action="{{ url_for('volunteer.complete_task', request_id=req.id) }}" method="POST" style="display: inline;">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-check-square"></i> Mark as Completed
+                                    </button>
+                                </form>
+                                <div class="alert alert-info mb-0 flex-grow-1">
+                                    <i class="bi bi-clock"></i> You are currently working on this task
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info text-center">
+                    <i class="bi bi-inbox"></i> No upcoming requests at the moment.
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- COMPLETED REQUESTS TAB -->
+        <div class="tab-pane fade" id="completed" role="tabpanel">
+            {% if completed_requests %}
+                {% for req in completed_requests %}
+                <div class="card mb-3 shadow-sm">
+                    <div class="card-header d-flex justify-content-between align-items-center bg-success bg-opacity-10">
+                        <h5 class="mb-0">{{ req.title }}</h5>
+                        <span class="badge bg-success">Completed</span>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong>Category:</strong> <span class="badge bg-info">{{ req.category.name if req.category else 'N/A' }}</span></p>
+                                <p class="mb-2"><strong>Requested by:</strong> {{ req.user.name }}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-2"><strong>Date:</strong> {{ req.date_created.strftime('%B %d, %Y') }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <strong>Description:</strong>
+                            <p class="mt-2">{{ req.description }}</p>
+                        </div>
+
+                        <!-- Review Section -->
+                        {% if req.review %}
+                        <div class="card bg-light border-warning">
+                            <div class="card-body">
+                                <h6 class="card-title">
+                                    <i class="bi bi-star-fill text-warning"></i> Review from {{ req.user.name }}
+                                </h6>
+                                <div class="mb-2">
+                                    <strong>Rating:</strong>
+                                    {% for i in range(1, 6) %}
+                                        {% if i <= req.review.rating %}
+                                            <i class="bi bi-star-fill text-warning"></i>
+                                        {% else %}
+                                            <i class="bi bi-star text-muted"></i>
+                                        {% endif %}
+                                    {% endfor %}
+                                    <span class="ms-2 text-muted">({{ req.review.rating }}/5)</span>
+                                </div>
+                                {% if req.review.comment %}
+                                <div>
+                                    <strong>Comment:</strong>
+                                    <p class="mb-0 mt-1 fst-italic">"{{ req.review.comment }}"</p>
+                                </div>
+                                {% endif %}
+                                <small class="text-muted d-block mt-2">
+                                    <i class="bi bi-calendar"></i> {{ req.review.date_created.strftime('%B %d, %Y') }}
+                                </small>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="alert alert-secondary mb-0">
+                            <i class="bi bi-hourglass-split"></i> Awaiting review from PIN
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info text-center">
+                    <i class="bi bi-info-circle"></i> No completed requests yet.
+                </div>
+            {% endif %}
+        </div>
+
+    </div>
+</div>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+{% endblock %}

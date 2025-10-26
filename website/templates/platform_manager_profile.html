@@ -1,76 +1,61 @@
 {% extends "base.html" %} 
-{% block title %}CSR Profile{% endblock %}
+{% block title %}Manager Profile{% endblock %}
+
 {% block content %}
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-10 col-lg-12">
+
+            <!-- Profile Header -->
             <div class="card shadow-lg border-0 mb-4">
                 <div class="card-body p-5">
                     <div class="text-center mb-4">
-                        <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 120px; height: 120px;">
+                        <div class="bg-success rounded-circle d-inline-flex align-items-center justify-content-center mb-3" style="width: 120px; height: 120px;">
                             <span class="text-white display-3 fw-bold">{{ current_user.name[0].upper() }}</span>
                         </div>
                         <h2 class="fw-bold mb-2">{{ current_user.name }}</h2>
                         <p class="text-muted">{{ current_user.role }}</p>
-                        <span class="badge bg-success">{{ 'Active' if current_user.is_active else 'Suspended' }}</span>
+                       <span class="badge 
+                            {% if current_user.status == 'Active' %} bg-success 
+                            {% elif current_user.status == 'Pending' %} bg-warning text-dark 
+                            {% elif current_user.status == 'Suspended' %} bg-danger 
+                            {% else %} bg-secondary {% endif %}">
+                            {{ current_user.status }}
+                        </span>
                     </div>
                 </div>
             </div>
 
-            <div class="row">
-                <!-- Left Half: Profile Info -->
-                <div class="col-lg-6">
-                    <div class="card shadow-lg border-0 mb-4">
-                        <div class="card-body p-4">
-                            <h4 class="fw-bold mb-4">Profile Information</h4>
-                            
+            <!-- Profile Information -->
+            <div class="card shadow-lg border-0 mb-4">
+                <div class="card-body p-4">
+                    <h4 class="fw-bold mb-4">Profile Information</h4>
                             <div class="mb-3">
                                 <p class="text-muted mb-1 small">Username</p>
                                 <p class="fw-semibold mb-0">{{ current_user.name }}</p>
                             </div>
-
                             <hr>
-
                             <div class="mb-3">
                                 <p class="text-muted mb-1 small">Email Address</p>
                                 <p class="fw-semibold mb-0">{{ current_user.email }}</p>
                             </div>
-
                             <hr>
-
                             <div class="mb-3">
                                 <p class="text-muted mb-1 small">Member Since</p>
                                 <p class="fw-semibold mb-0">{{ current_user.date_created.strftime('%B %d, %Y') }}</p>
                             </div>
-
                             <hr>
-
                             <div>
                                 <p class="text-muted mb-1 small">Account Type</p>
                                 <p class="fw-semibold mb-0">{{ current_user.role }}</p>
                             </div>
-                        </div>
-                    </div>
                 </div>
-
-                <!-- Account Settings -->
-                <div class="col-lg-6">
-                    <div class="card shadow-lg border-0 mb-4">
-                        <div class="card-body p-4">
-                            <h4 class="fw-bold mb-4">Account Settings</h4>
-                            
-                            <div class="d-grid gap-2">
-                                <button class="btn btn-primary" onclick="location.href='/edit-profile'">
-                                    Edit Profile
-                                </button>
-                                <button class="btn btn-outline-secondary" onclick="location.href='/change-password'">
-                                    Change Password
-                                </button>
-                                <button class="btn btn-outline-danger" onclick="if(confirm('Are you sure you want to delete your account?')) location.href='/delete-account'">
-                                    Delete Account
-                                </button>
-                            </div>
-                        </div>
+                <div class="card-body p-4">
+                    <h4 class="fw-bold mb-4">Account Settings</h4>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary" onclick="location.href='/edit-profile'">Edit Profile</button>
+                        <button class="btn btn-outline-secondary" onclick="location.href='/change-password'">Change Password</button>
+                        <button class="btn btn-outline-danger" onclick="if(confirm('Are you sure you want to delete your account?')) location.href='/delete-account'">Delete Account</button>
                     </div>
                 </div>
             </div>

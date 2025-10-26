@@ -27,8 +27,6 @@
             </div>
 
             <div class="row">
-
-                <!-- Left Column -->
                 <div class="col-lg-4">
                     <!-- Profile Information -->
                     <div class="card shadow-lg border-0 mb-4">
@@ -69,8 +67,8 @@
                     </div>
                 </div>
 
-                <!-- Right Column -->
-                <div class="col-lg-8">
+                <!-- Requests -->
+                <div class="col-lg-8 mt-2">
                     <div class="card shadow-lg border-0">
                         <div class="card-body p-4">
                             {% if current_user.status == "Pending" or current_user.status == "Suspended" %}
@@ -117,8 +115,18 @@
 
                                                 <div class="d-flex gap-2">
                                                     <button class="btn btn-sm btn-outline-primary" onclick="location.href='/request/{{ request.id }}'">View</button>
-                                                    <button class="btn btn-sm btn-outline-secondary" onclick="location.href='/request/{{ request.id }}/edit'">Edit</button>
-                                                    <button class="btn btn-sm btn-outline-danger" onclick="if(confirm('Are you sure you want to delete this request?')) location.href='/request/{{ request.id }}/delete'">Delete</button>
+
+                                                    {% if request.status == 'Completed' %}
+                                                        <button class="btn btn-sm btn-outline-success" onclick="location.href='/request/{{ request.id }}/review'">Review</button>
+                                                    {% else %}
+                                                        <button class="btn btn-sm btn-outline-secondary" onclick="location.href='/request/{{ request.id }}/edit'">Edit</button>
+                                                    {% endif %}
+
+                                                    <form action="{{ url_for('csr.delete_request', request_id=request.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this request?');">
+                                                        <button class="btn btn-danger" type="submit">
+                                                            <i class="bi bi-trash"></i> Delete
+                                                        </button>
+                                                    </form>
                                                 </div>
                                             </div>
                                         </div>
