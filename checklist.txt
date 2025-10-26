@@ -31,6 +31,8 @@ Platform Manager
 - Account Login/Logout
 - Create Service Category
 - Delete Service Category
+- Generate daily report
+
 
 Volunteer
 - Create Account
