@@ -89,28 +89,55 @@ def platform_manager_dashboard():
 
 # Add Categories for requests
 @platform.route('/add-category', methods=['POST'])
-# @login_required
+@login_required
 def add_category():
-    name = request.form.get('name')
-    description = request.form.get('description')
-    
+    # Only Platform Manager with Active status can add
+    if current_user.role != 'Platform Manager':
+        flash('Access denied. Platform Manager role required.', category='danger')
+        return redirect(url_for('views.home'))
+    if current_user.status != 'Active':
+        flash('Your account is not active. Access denied.', category='danger')
+        return redirect(url_for('views.home'))
+
+    dashboard = url_for('platform.platform_manager_dashboard')
+
+    # Get and normalize inputs
+    name = (request.form.get('name') or '').strip()
+    description = (request.form.get('description') or '').strip()
+
     if not name:
-        flash('category name is required.', category='warning')
-        return redirect(url_for('platform.platform_manager_dashboard'))
-    
-    # Check if category already exists
-    existing_category = Category.query.filter_by(name=name).first()
-    if existing_category:
-        flash(f'category "{name}" already exists.', category='danger')
-        return redirect(url_for('platform.platform_manager_dashboard'))
-    
-    # Create new category
-    new_category = Category(name=name, description=description)
+        flash('Category name is required.', category='warning')
+        return redirect(dashboard)
+
+   # Collapse internal whitespace and use that as the canonical stored value
+    normalized_name = ' '.join(name.split())
+
+    # Case-insensitive duplicate check using LOWER() to catch 'Transport' vs 'transport'
+    exists = db.session.scalar(
+        db.select(Category.id).where(func.lower(Category.name) == normalized_name.lower())
+    )
+    if exists:
+        flash(f'Category "{normalized_name}" already exists.', category='danger')
+        return redirect(dashboard)
+
+    # Create & commit
+    new_category = Category(name=normalized_name, description=description)
     db.session.add(new_category)
-    db.session.commit()
-    
-    flash(f'category "{name}" added successfully!', category='success')
-    return redirect(url_for('platform.platform_manager_dashboard'))
+    try:
+        db.session.commit()
+    except IntegrityError:
+        # In case two requests race and hit the unique constraint
+        db.session.rollback()
+        flash(f'Category "{normalized_name}" already exists.', category='danger')
+        return redirect(dashboard)
+    except Exception:
+        db.session.rollback()
+        flash('Could not add category. Please try again later.', category='danger')
+        return redirect(dashboard)
+
+    flash(f'Category "{normalized_name}" added successfully!', category='success')
+    return redirect(dashboard)
+
 
 
 @platform.route('/delete_category/<int:category_id>', methods=['POST'])
