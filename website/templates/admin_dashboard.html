@@ -141,6 +141,9 @@
         </div>
         {% endif %}
     </div>
+    <div class="d-flex justify-content-end mt-3">
+      <button class="btn btn-danger" id="clearDatabaseBtn">Clear Database</button>
+    </div>
 </div>
 
 <script>
@@ -178,6 +181,17 @@
 
     searchInput.addEventListener('keyup', filterTable);
     statusFilter.addEventListener('change', filterTable);
+</script>
+
+<script>
+document.getElementById('clearDatabaseBtn').addEventListener('click', () => {
+  if (confirm('Are you sure you want to clear the database? This cannot be undone.')) {
+    fetch('/api/clear-database', { method: 'DELETE' })
+      .then(res => res.json())
+      .then(data => alert(data.message || data.error))
+      .catch(err => alert('Error: ' + err));
+  }
+});
 </script>
 
 {% endblock %}
