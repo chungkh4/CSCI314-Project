@@ -3,6 +3,7 @@ from . import db
 from flask_login import UserMixin
 from sqlalchemy.sql import func
 
+
 class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     # Account details
@@ -17,11 +18,13 @@ class User(db.Model, UserMixin):
 
     status = db.Column(db.String(20), default='Pending')  # Pending, Approved, Suspended
 
+
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), unique=True, nullable=False)
     description = db.Column(db.String(250))
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 class Volunteer(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -36,6 +39,7 @@ class Volunteer(db.Model):
     is_available = db.Column(db.Boolean, default=True)
     total_tasks_completed = db.Column(db.Integer, default=0)
 
+
 class Request(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(150), nullable=False)
@@ -46,11 +50,11 @@ class Request(db.Model):
 
     status = db.Column(db.String(20), default='Pending')  # Pending, Accepted, Completed
 
-    scheduled_datetime = db.Column(db.DateTime, nullable=False) 
+    scheduled_datetime = db.Column(db.DateTime, nullable=False)
 
     view_count = db.Column(db.Integer, default=0)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Foreign key to user who created the request
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
@@ -79,3 +83,9 @@ class Review(db.Model):
     # Link to the user (PIN) who wrote the review
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     user = db.relationship('User', backref=db.backref('reviews_written', lazy=True))
+
+
+class Logout(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    DateTime = db.Column(db.Integer, nullable=False)
