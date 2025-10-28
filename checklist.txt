@@ -25,13 +25,17 @@ CSR
 Admin
 - Admin Dashboard - kh
 	- Suspend/Delete/View user/Update User Account
-	- Search User/Filter by role
+	- Search User - Lya
+	- Filter by role
+	Create User Account w Temporary Password
+	- Create User Account with Temporary Password - Lya
 
 Platform Manager
 - Account Creation - Manfred
 - Account Login/Logout - kh
 - Create Service Category - Manfred
-- Delete Service Category - Manfred
+- Edit Service Category - Lya
+- Delete Service Category - Lya
 - Generate daily report - Manfred
 
 Volunteer
