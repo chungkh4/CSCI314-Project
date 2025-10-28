@@ -34,7 +34,6 @@ Platform Manager
 - Delete Service Category - Manfred
 - Generate daily report - Manfred
 
-
 Volunteer
 - Create Account
 - Login/logout -Kh
