@@ -18,6 +18,17 @@ class User(db.Model, UserMixin):
 
     status = db.Column(db.String(20), default='Pending')  # Pending, Approved, Suspended
 
+    """    total_rating = db.Column(db.Float, default=0)
+    num_ratings = db.Column(db.Integer, default=0)
+
+    def update_rating(self, new_rating: float):
+        #Update overall CSR rating with a new rating value.
+        if self.num_ratings == 0:
+            self.total_rating = new_rating
+        else:
+            self.total_rating = ((self.total_rating * self.num_ratings) + new_rating) / (self.num_ratings + 1)
+        self.num_ratings += 1"""
+
 
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -89,3 +100,9 @@ class Logout(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     DateTime = db.Column(db.Integer, nullable=False)
+
+
+class Shortlist(db.Model):
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), primary_key=True, nullable=False)
+    shortlist_request_id = db.Column(db.Integer, db.ForeignKey('request.id'), primary_key=True, nullable=False)
+    DateTime = db.Column(db.Integer, default=func.now(), nullable=False)

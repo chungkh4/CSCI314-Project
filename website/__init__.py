@@ -23,6 +23,7 @@ def create_app():
     from .pin import pin
     from .volunteer import volunteer
     from .platform import platform
+    from .shortlist import shortlist
 
     app.register_blueprint(views, url_prefix="/")
     app.register_blueprint(auth, url_prefix='/')
@@ -31,6 +32,7 @@ def create_app():
     app.register_blueprint(csr, url_prefix='/')
     app.register_blueprint(volunteer, url_prefix='/')
     app.register_blueprint(platform, url_prefix='/')
+    app.register_blueprint(shortlist, url_prefix='/')
 
 
     from .models import User

@@ -134,7 +134,7 @@ def create_request():
 
         if not category_id:
             flash('Please select a category.', 'danger')
-            return redirect(url_for('create_request'))
+            return redirect(url_for('views.create_request'))
 
         # Convert to Python datetime object
         scheduled_datetime = datetime.fromisoformat(scheduled_datetime)
