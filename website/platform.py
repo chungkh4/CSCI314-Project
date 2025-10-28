@@ -139,17 +139,83 @@ def add_category():
     return redirect(dashboard)
 
 
+### edit volunteer service category ###
+@platform.route('/category/<int:category_id>/edit', methods=['POST'])
+@login_required
+def edit_category(category_id):
+    if current_user.role != 'Platform Manager' or current_user.status != 'Active':
+        flash('Access denied.', 'danger')
+        return redirect(url_for('platform.platform_manager_dashboard'))
 
+    from .models import Category
+    from . import db
+
+    name = (request.form.get('name') or '').strip()
+    description = (request.form.get('description') or '').strip()
+
+    if not name:
+        flash('Category name is required.', 'warning')
+        return redirect(url_for('platform.platform_manager_dashboard'))
+
+    cat = Category.query.get_or_404(category_id)
+    cat.name = name
+    cat.description = description if description else None
+
+    try:
+        db.session.commit()
+        flash('Category updated successfully.', 'success')
+    except Exception:
+        db.session.rollback()
+        flash('Error updating category. Please try again.', 'danger')
+
+    return redirect(url_for('platform.platform_manager_dashboard'))
+
+
+### delete volunteer service category ###
 @platform.route('/delete_category/<int:category_id>', methods=['POST'])
+@login_required
 def delete_category(category_id):
+   # platform manager only function: delete volunteer category 
+    if current_user.role != 'Platform Manager':
+        flash('Access denied. Platform Manager role required.', category='danger')
+        return redirect(url_for('views.home'))
+    if current_user.status != 'Active':
+        flash('Your account is not active. Access denied.', category='danger')
+        return redirect(url_for('views.home'))
+
     category = Category.query.get_or_404(category_id)
+
+    # count dependents - check requests using the category + volunteers linked to category 
+    req_count = Request.query.filter_by(category_id=category.id).count()
+    vol_q = Volunteer.query.filter_by(category_id=category.id)
+    vol_count = vol_q.count()
+
+    # if there are requests linked to this category, block deletion (Request.category_id is NOT NULL)
+    if req_count > 0:
+        flash(
+            f'Cannot delete "{category.name}" — there are {req_count} request(s) using this category. '
+            'Reassign or delete those requests first.', 
+            'danger'
+        )
+        return redirect(url_for('platform.platform_manager_dashboard'))
+
+    # if volunteers are attached to category, remove their relation
+    if vol_count > 0:
+        for v in vol_q.all():
+            v.category_id = None
+        db.session.flush()  # stage updates so delete dont violate FKs
+
     try:
         db.session.delete(category)
         db.session.commit()
-        flash(f'Category "{category.name}" has been deleted.', 'success')
-    except Exception as e:
+        if vol_count > 0:
+            flash(f'Category "{category.name}" deleted. {vol_count} volunteer(s) were detached.', 'success')
+        else:
+            flash(f'Category "{category.name}" deleted.', 'success')
+    except Exception:
         db.session.rollback()
-        flash('Error deleting category.', 'danger')
+        flash('Error deleting category. Please try again later.', 'danger')
+
     return redirect(url_for('platform.platform_manager_dashboard'))
 
 

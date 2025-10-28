@@ -7,43 +7,147 @@
 
     <!-- Category Management Section -->
     <div class="card mb-4 shadow-sm">
-        <div class="card-body">
-            <h5 class="card-title">Add Category</h5>
-            <form action="{{ url_for('platform.add_category') }}" method="POST" class="row g-3">
-                <div class="col-md-5">
-                    <input type="text" name="name" class="form-control" placeholder="Category name">
-                </div>
-                <div class="col-md-5">
-                    <input type="text" name="description" class="form-control" placeholder="Description">
-                </div>
-                <div class="col-md-2">
-                    <button class="btn btn-primary w-100" type="submit">Add</button>
-                </div>
-            </form>
+    <div class="card-body">
+        <h5 class="card-title">Add Volunteer Service Category</h5>
+        <form action="{{ url_for('platform.add_category') }}" method="POST" class="row g-3">
+        <div class="col-12">
+            <label class="form-label fw-semibold">Category Name</label>
+            <input type="text" name="name" class="form-control" placeholder="Enter category name" required>
         </div>
+
+        <div class="col-12">
+            <label class="form-label fw-semibold">Description</label>
+            <textarea
+            name="description"
+            class="form-control"
+            placeholder="Enter detailed description on this volunteer category(optional)"
+            rows="4"
+            style="resize: vertical;"
+            ></textarea>
+        </div>
+
+        <div class="col-12 text-end mt-2">
+            <button class="btn btn-primary" type="submit">Add Category</button>
+        </div>
+        </form>
+    </div>
     </div>
 
-    <!-- Skill List -->
+
+    <!-- View/Delete/Edit Volunteer Categories -->
     <div class="card mb-5 shadow-sm">
-        <div class="card-body">
-            <h5 class="card-title mb-3">Existing Categories</h5>
-            {% if categories %}
-            <ul class="list-group list-group-flush">
-                {% for category in categories %}
-               <li class="list-group-item d-flex justify-content-between align-items-center">
-                    <span>{{ category.name }} — <small class="text-muted">{{ category.description or 'No description' }}</small></span>
-                    <form action="{{ url_for('platform.delete_category', category_id=category.id) }}" method="POST" style="margin:0;">
-                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+    <div class="card-body">
+        <h5 class="card-title mb-3">Existing Volunteer Service Categories</h5>
+
+        {% if categories %}
+        <ul class="list-group list-group-flush">
+        {% for category in categories %}
+        <li class="list-group-item">
+        <div class="d-flex justify-content-between align-items-start">
+            <!-- Left side: name + description -->
+            <div style="flex:1; min-width:0; padding-right:1rem;">
+            <!-- Blue rectangle for name -->
+            <div style="
+                display:inline-block;
+                background-color:#e3f2fd;     
+                color:#0d6efd;                 
+                border-radius:6px;
+                padding:0.35rem 0.6rem;
+                font-weight:600;
+                line-height:1.2;
+                margin-bottom:0.3rem;
+                margin-left:0;
+                overflow-wrap:anywhere;
+                word-break:break-word;                 
+            ">
+                {{ category.name }}
+            </div>
+
+            <!-- Description -->
+            <div style="
+                color:#6c757d;
+                font-size:0.925rem;
+                white-space:pre-line;
+                overflow-wrap:anywhere;
+                word-break:break-word;
+                max-width:100%;
+            ">
+                {{ category.description or 'No description' }}
+            </div>
+            </div>
+
+            <!-- Right side: actions -->
+            <div style="margin-left:1rem;">
+            <div class="dropdown">
+                <button class="btn btn-outline-primary btn-sm dropdown-toggle"
+                        type="button"
+                        id="catActionDropdown{{ category.id }}"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false">
+                Actions
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="catActionDropdown{{ category.id }}">
+                <li>
+                    <button class="dropdown-item" type="button"
+                            data-bs-toggle="modal"
+                            data-bs-target="#editCategoryModal-{{ category.id }}">
+                    Edit
+                    </button>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <form action="{{ url_for('platform.delete_category', category_id=category.id) }}"
+                        method="POST" class="px-3 py-1"
+                        onsubmit="return confirm('Delete {{ category.name }}? This cannot be undone.');">
+                    <button type="submit" class="dropdown-item text-danger px-0">Delete</button>
                     </form>
                 </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p class="text-muted mb-0">No skills added yet.</p>
-            {% endif %}
+                </ul>
+            </div>
+            </div>
         </div>
+
+            <!-- Edit Volunteer Service Category -->
+            <div class="modal fade" id="editCategoryModal-{{ category.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                <form method="POST" action="{{ url_for('platform.edit_category', category_id=category.id) }}">
+                    <div class="modal-header">
+                    <h5 class="modal-title">Edit Category</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Category Name</label>
+                        <input type="text" name="name" class="form-control" value="{{ category.name }}" required>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-semibold">Description</label>
+                        <textarea name="description"
+                                class="form-control"
+                                rows="4"
+                                style="resize: vertical;">{{ category.description }}</textarea>
+                    </div>
+                    </div>
+                    <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+                </div>
+            </div>
+            </div>
+            <!-- /Edit Volunteer Service Category -->
+        </li>
+        {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted mb-0">No volunteer service categories added yet.</p>
+        {% endif %}
     </div>
-    
+    </div>
+
+
     <!-- Statistics Cards -->
     <div class="row mb-4">
         <div class="col-md-3">
