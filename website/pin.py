@@ -20,7 +20,6 @@ def pin_profile():
 @pin.route('/request/<int:request_id>/review', methods=['GET', 'POST'])
 @login_required
 def review_request(request_id):
-    # Write Review Here!!!!
     req = Request.query.get_or_404(request_id)
 
     # Only the PIN who created the request can review
@@ -51,9 +50,8 @@ def review_request(request_id):
         )
         db.session.add(new_review)
         db.session.commit()
+
         flash("Thank you for your feedback!", "success")
         return redirect(url_for('views.home'))
 
     return render_template('review.html', req=req)
-
-

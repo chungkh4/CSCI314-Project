@@ -20,6 +20,7 @@ CSR
 		- Search/Filter Request
 	- CSR Assign to Volunteer
 	- CSR Delete Request
+	- CSR Add request to shortlist - KH
 
 Admin
 - Admin Dashboard 
