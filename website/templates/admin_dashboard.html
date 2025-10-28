@@ -40,7 +40,7 @@
                         <th style="width: 120px;">Actions</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="userTableBody">
                     {% if users and users|length > 0 %}
                         {% for user in users %}
                         <tr>
@@ -141,8 +141,9 @@
         </div>
         {% endif %}
     </div>
-    <div class="d-flex justify-content-end mt-3">
-      <button class="btn btn-danger" id="clearDatabaseBtn">Clear Database</button>
+    <div class="d-flex justify-content-end mt-3 gap-2 mb-4">
+    <a class="btn btn-success" href="{{ url_for('admin.create_user') }}">Create User</a>
+    <button class="btn btn-danger" id="clearDatabaseBtn">Clear Database</button>
     </div>
 </div>
 
@@ -178,6 +179,15 @@
             row.style.display = (matchesSearch && matchesStatus) ? '' : 'none';
         }
     }
+
+    // search user profiles function
+    searchInput?.addEventListener('input', filterTable);
+    searchInput?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        filterTable();
+      }
+    });
 
     searchInput.addEventListener('keyup', filterTable);
     statusFilter.addEventListener('change', filterTable);

@@ -3,6 +3,7 @@ from sqlalchemy import text
 from flask_login import login_required, current_user
 from .models import User, Request
 from . import db
+from werkzeug.security import generate_password_hash
 
 admin = Blueprint('admin', __name__)
 
@@ -135,3 +136,73 @@ def clear_database():
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+
+
+# Function: Create User Profiles for PIN/CSR Rep/Platform Manager/Volunteer with temporary password
+ALLOWED_ROLES = {"CSR", "Platform Manager", "Volunteer", "PIN"}
+ALLOWED_STATUSES = {"Active", "Pending", "Suspended"}  # pick the set your app actually uses
+
+@admin.route('/admin/create-user', methods=['GET', 'POST'])
+@login_required
+def create_user():
+    # Authorize: adjust to your real admin role(s)
+    if getattr(current_user, "role", "").lower() != "admin":
+        return jsonify({"error": "Unauthorized"}), 403
+
+    if request.method == 'POST':
+        fullname = (request.form.get('fullname') or '').strip()
+        email = (request.form.get('email') or '').strip().lower()
+        temp_pw = (request.form.get('password') or '').strip()
+        role = (request.form.get('role') or '').strip()
+        status = (request.form.get('status') or '').strip()
+
+        # Normalize status text from form (e.g., "activated" -> "Active")
+        status_map = {
+            "activated": "Active",
+            "active": "Active",
+            "pending": "Pending",
+            "suspended": "Suspended",
+        }
+        status_normalized = status_map.get(status.lower(), status)
+
+        # ---- Correct validation ----
+        # 1) All fields present
+        if not (fullname and email and temp_pw and role and status):
+            flash("Please fill all fields.", "warning")
+            return redirect(url_for('admin.create_user'))
+
+        # 2) Role must be in allowed roles
+        if role not in ALLOWED_ROLES:
+            flash("Invalid role selected.", "danger")
+            return redirect(url_for('admin.create_user'))
+
+        # 3) Status must be in allowed statuses
+        if status_normalized not in ALLOWED_STATUSES:
+            flash("Invalid status. Please select a valid status.", "danger")
+            return redirect(url_for('admin.create_user'))
+
+        # 4) Unique email
+        if User.query.filter_by(email=email).first():
+            flash("Email is already in use.", "danger")
+            return redirect(url_for('admin.create_user'))
+
+        # Create user (hash password explicitly)
+        user = User(
+            name=fullname,
+            email=email,
+            password=generate_password_hash(temp_pw, method='pbkdf2:sha256'), # consider adding flag/function where user logging in w temp password FORCED to change pw
+            role=role,
+            status=status_normalized,
+        )
+        db.session.add(user)
+        db.session.commit()
+
+        flash(f"User '{fullname}' ({role}) created with status '{status_normalized}'.", "success")
+        return redirect(url_for('admin.dashboard'))
+
+    # GET -> render form
+    return render_template(
+        'admin_dashboard_create_user_profile.html',
+        allowed_roles=sorted(ALLOWED_ROLES),
+        allowed_statuses=sorted(ALLOWED_STATUSES)
+    )

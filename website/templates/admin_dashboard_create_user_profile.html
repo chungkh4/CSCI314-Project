@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Create User{% endblock %}
+
+{% block content %}
+<div class="container mt-5" style="max-width: 720px;">
+  <h1 class="mb-4">Create User Profile</h1>
+
+  <form method="POST" action="{{ url_for('admin.create_user') }}" class="card p-4 shadow-sm">
+    <div class="mb-3">
+      <label class="form-label">Full Name</label>
+      <input type="text" class="form-control" name="fullname" placeholder="e.g., Jane Doe" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Email</label>
+      <input type="email" class="form-control" name="email" placeholder="e.g., jane@example.com" required>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Temporary Password</label>
+      <input type="text" class="form-control" name="password" placeholder="Temporary password to hand to user" required>
+      <div class="form-text">A secure, temporary password will be hashed before storage.</div>
+    </div>
+
+    <div class="mb-4">
+      <label class="form-label">Role</label>
+      <select class="form-select" name="role" required>
+        {% for r in allowed_roles %}
+          <option value="{{ r }}">{{ r }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="mb-5">
+    <label class="form-label">Status</label>
+    <select class="form-select" name="status" required>
+        {% for s in allowed_statuses %}
+        <option value="{{ s }}">{{ s }}</option>
+        {% endfor %}
+    </select>
+    </div>
+
+
+    <div class="d-flex gap-2">
+      <a class="btn btn-outline-secondary" href="{{ url_for('admin.dashboard') }}">Cancel</a>
+      <button type="submit" class="btn btn-primary">Create User</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
