@@ -9,13 +9,12 @@ shortlist = Blueprint('shortlist', __name__)
 
 @shortlist.route('/request/<int:request_id>/csr_shortlist', methods=['POST'])
 @login_required
-def shortlist_item(request_id):
+def shortlist_request(request_id):
     # Use the IDs matching your database columns and context
-    person_account_id = current_user.id
-    item_id = request_id
+    csr_account_id = current_user.id
 
     # 1. Check if the item is already shortlisted (Query uses the composite PK columns)
-    existing_entry = Shortlist.query.get((person_account_id, item_id))
+    existing_entry = Shortlist.query.get((csr_account_id, request_id))
 
     redirect_page = request.referrer or url_for('default_page')
 
@@ -25,8 +24,8 @@ def shortlist_item(request_id):
 
     # 2. Create and add the new entry (Initialization uses the model's property names)
     new_shortlist = Shortlist(
-        user_id=person_account_id,  # Matches the 'user_id' column
-        shortlist_request_id=item_id  # Matches the 'shortlist_request_id' column
+        user_id=csr_account_id,  # Matches the 'user_id' column
+        shortlist_request_id=request_id  # Matches the 'shortlist_request_id' column
     )
 
     try:

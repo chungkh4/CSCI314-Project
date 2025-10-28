@@ -124,7 +124,7 @@
                 <!--if user is CSR display shortlist and accept buttons-->
                 <div class="d-flex">
                     {% if current_user.role == "CSR" %}
-                        <form method="POST" action="{{ url_for('shortlist.shortlist_item', request_id=req.id) }}">
+                        <form method="POST" action="{{ url_for('shortlist.shortlist_request', request_id=req.id) }}">
                             <button type="submit" class="btn btn-outline-primary me-2">
                                 Shortlist
                             </button>
