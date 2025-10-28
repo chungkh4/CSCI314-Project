@@ -8,18 +8,18 @@
   <form method="POST" action="{{ url_for('admin.create_user') }}" class="card p-4 shadow-sm">
     <div class="mb-3">
       <label class="form-label">Full Name</label>
-      <input type="text" class="form-control" name="fullname" placeholder="e.g., Jane Doe" required>
+      <input type="text" class="form-control" name="fullname" placeholder="e.g. John" required>
     </div>
 
     <div class="mb-3">
       <label class="form-label">Email</label>
-      <input type="email" class="form-control" name="email" placeholder="e.g., jane@example.com" required>
+      <input type="email" class="form-control" name="email" placeholder="e.g. John@MondayBlues.com" required>
     </div>
 
     <div class="mb-3">
       <label class="form-label">Temporary Password</label>
-      <input type="text" class="form-control" name="password" placeholder="Temporary password to hand to user" required>
-      <div class="form-text">A secure, temporary password will be hashed before storage.</div>
+      <input type="text" class="form-control" name="password" placeholder="Temporary password for user" required>
+      <div class="form-text">Temporary password for user to login. User is expected to change their own password upon login.</div>
     </div>
 
     <div class="mb-4">
