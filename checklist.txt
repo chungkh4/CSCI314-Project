@@ -1,43 +1,43 @@
 PIN (Personal In Need)
-	- PIN Create Account
-	- PIN Update/Edit Account Info
-	- PIN login / logout
-	- PIN Delete Account
-	- PIN Change Password
+	- PIN Create Account - Min
+	- PIN Update/Edit Account Info - Min
+	- PIN login / logout - Kh
+	- PIN Delete Account - Min
+	- PIN Change Password - Min
 
-	- PIN Create Request
+	- PIN Create Request - Kh
 	- PIN Delete Request
 
-	- PIN Write Review for completed request.
+	- PIN Write Review for completed request. -
 
 CSR
-	- CSR Create Account
-	- CSR Login/Logout
+	- CSR Create Account - Kh
+	- CSR Login/Logout -Kh
 	- CSR Delete Account
-	- CSR Edit/update Info
+	- CSR Edit/update Info - Kh
 	- CSR Dashboard
 		- Accept Request
 		- Search/Filter Request
-	- CSR Assign to Volunteer
-	- CSR Delete Request
+	- CSR Assign to Volunteer -
+	- CSR Delete Request - delete function
 	- CSR Add request to shortlist - KH
 
 Admin
-- Admin Dashboard 
+- Admin Dashboard - kh
 	- Suspend/Delete/View user/Update User Account
 	- Search User/Filter by role
 
 Platform Manager
-- Account Creation 
-- Account Login/Logout
+- Account Creation - Manfred
+- Account Login/Logout - kh
 - Create Service Category - Manfred
-- Delete Service Category
+- Delete Service Category - Manfred
 - Generate daily report - Manfred
 
 
 Volunteer
 - Create Account
-- Login/logout
-- Accept/decline the assigned request
-- Volunteer Dashboard
-- Completed Request
+- Login/logout -Kh
+- Accept/decline the assigned request - Min
+- Volunteer Dashboard - Min
+- Completed Request - Min
