@@ -6,7 +6,7 @@ PIN (Personal In Need)
 	- PIN Change Password
 
 	- PIN Create Request
-	- PIN Delete Reques
+	- PIN Delete Request
 
 	- PIN Write Review for completed request.
 
@@ -30,14 +30,14 @@ Admin
 Platform Manager
 - Account Creation 
 - Account Login/Logout
-- Create Service Category
+- Create Service Category - Manfred
 - Delete Service Category
-- Generate daily report
+- Generate daily report - Manfred
 
 
 Volunteer
 - Create Account
 - Login/logout
-- Accpet/decline the assigned request 
+- Accept/decline the assigned request
 - Volunteer Dashboard
 - Completed Request
