@@ -36,7 +36,7 @@ Platform Manager
 - Create Service Category - Manfred
 - Edit Service Category - Lya
 - Delete Service Category - Lya
-- Generate daily report - Manfred
+- Generate daily report - Manfred (checked and updated)
 
 Volunteer
 - Create Account
