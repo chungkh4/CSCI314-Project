@@ -33,7 +33,7 @@ Admin
 Platform Manager
 - Account Creation - Manfred
 - Account Login/Logout - kh
-- Create Service Category - Manfred
+- Create Service Category - Manfred (checked)
 - Edit Service Category - Lya
 - Delete Service Category - Lya
 - Generate daily report - Manfred (checked and updated)
