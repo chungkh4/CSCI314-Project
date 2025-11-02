@@ -6,18 +6,18 @@ PIN (Personal In Need)
 	- PIN Change Password - Min
 
 	- PIN Create Request - Kh
-	- PIN Delete Request
+	- PIN Delete Request - Rhizo
 
-	- PIN Write Review for completed request. -
+	- PIN Write Review for completed request. -Jeddi
 
 CSR
 	- CSR Create Account - Kh
 	- CSR Login/Logout -Kh
-	- CSR Delete Account
+	- CSR Delete Account-Rhizo
 	- CSR Edit/update Info - Kh
 	- CSR Dashboard
 		- Accept Request
-		- Search/Filter Request
+		- Search/Filter Request-Rhizo
 	- CSR Assign to Volunteer -
 	- CSR Delete Request - delete function
 	- CSR Add request to shortlist - KH
