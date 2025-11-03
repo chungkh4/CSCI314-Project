@@ -56,7 +56,7 @@ def sign_up():
 
             if role == 'CSR':
                 # add to CSR database
-                new_CSR = Csr(user_id=new_user.id, role=role)
+                new_CSR = Csr(user_id=new_user.id, name=username, role=role)
                 db.session.add(new_CSR)
                 db.session.commit()
 

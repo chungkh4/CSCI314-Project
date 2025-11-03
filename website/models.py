@@ -72,7 +72,7 @@ class Request(db.Model):
     # Foreign key to volunteer assigned to this request
     volunteer_id = db.Column(db.Integer, db.ForeignKey('volunteer.id'), nullable=True)
 
-    #csr_id = db.Column(db.Integer, db.ForeignKey("csr.user_id"), nullable=True)
+    csr_id = db.Column(db.Integer, db.ForeignKey("csr.user_id"), nullable=True)
 
     # Relationships
     user = db.relationship('User', backref=db.backref('requests', lazy=True, cascade='all, delete-orphan'), lazy=True)
@@ -111,4 +111,5 @@ class Shortlist(db.Model):
 class Csr(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), unique=True, nullable=False)
+    name = db.Column(db.String(150))
     role = db.Column(db.Integer, db.ForeignKey('user.role'), nullable=False)
