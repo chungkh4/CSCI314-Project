@@ -8,6 +8,7 @@ from flask_login import LoginManager
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
 
+
 # --- DB handle (shared) ---
 db = SQLAlchemy()
 

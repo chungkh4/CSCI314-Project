@@ -1,6 +1,6 @@
 import datetime
 from flask import Blueprint, Request, render_template, request, flash, redirect, url_for
-from .models import Category, User, Volunteer, Logout, Shortlist
+from .models import Category, User, Volunteer, Logout, Shortlist, Csr
 from . import db
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -52,6 +52,12 @@ def sign_up():
                 new_volunteer = Volunteer(user_id=new_user.id, category_id=int(category_id) if category_id else None)  #
 
                 db.session.add(new_volunteer)
+                db.session.commit()
+
+            if role == 'CSR':
+                # add to CSR database
+                new_CSR = Csr(user_id=new_user.id, role=role)
+                db.session.add(new_CSR)
                 db.session.commit()
 
             # login_user(new_user, remember=True)
