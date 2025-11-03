@@ -190,7 +190,7 @@ def create_app():
             click.echo("Please pass --file path/to/volunteer_accounts.csv")
             return
 
-        from .models import User, Category  # import inside to avoid circulars
+        from .models import User, Category, Volunteer # import inside to avoid circulars
 
         created = 0
         skipped = 0
@@ -229,7 +229,13 @@ def create_app():
                         status="Active"
                     )
 
+                    volunteer = Volunteer(
+                        user_id=user.id,
+                        category_id=category.id if category else None
+                    )
+
                     db.session.add(user)
+                    db.session.add(volunteer)
                     created += 1
 
                 db.session.commit()
