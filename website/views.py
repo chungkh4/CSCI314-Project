@@ -6,8 +6,6 @@ from website.models import Category, Request, User
 
 from datetime import datetime
 
-
-
 # url holders
 views = Blueprint('views', __name__)
 

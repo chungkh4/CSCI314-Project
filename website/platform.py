@@ -13,10 +13,6 @@ def platform_manager_dashboard():
     if current_user.role != 'Platform Manager':
         flash('Access denied. Platform Manager role required.', category='danger')
         return redirect(url_for('views.home'))
-    
-    if current_user.status != 'Active':
-        flash('Your account is not active. Access denied.', category='danger')
-        return redirect(url_for('views.home'))
         
     # Total volunteers
     total_volunteers = Volunteer.query.count()

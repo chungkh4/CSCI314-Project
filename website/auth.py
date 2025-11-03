@@ -109,10 +109,6 @@ def logout():
 def delete_account():
     user = current_user  # Get the logged-in(current) user
 
-    if user.role == 'Platform Manager':
-        flash('Platform Manager accounts cannot be deleted. Please contact system administrator.', category='danger')
-        return redirect(url_for('views.manager_profile'))
-
     try:
         # 1. Delete all user's requests first
         Request.query.filter_by(user_id=user.id).delete()

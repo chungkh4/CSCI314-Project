@@ -73,15 +73,6 @@ def volunteer_accept_task(request_id):
     
     req = Request.query.get_or_404(request_id)
     
-    # Verify this request is assigned to this volunteer
-    # if req.volunteer_id != volunteer_profile.id:
-    #     flash('This request is not assigned to you.', 'danger')
-    #     return redirect(url_for('volunteer.volunteer_dashboard'))
-    
-    # if req.status != 'Assigned':
-    #     flash('This task cannot be started at this time.', 'warning')
-    #     return redirect(url_for('volunteer.volunteer_dashboard'))
-    
     try:
         volunteer_profile.is_available = False
         req.status = "In Progress"
@@ -92,7 +83,6 @@ def volunteer_accept_task(request_id):
         flash(f'Error starting task: {str(e)}', 'danger')
     
     return redirect(url_for('volunteer.volunteer_dashboard'))
-
 
 # Volunteer declines Request
 @volunteer.route('/volunteer/request/<int:request_id>/decline', methods=['POST'])

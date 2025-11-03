@@ -17,6 +17,40 @@ def pin_profile():
     
     return render_template("pin_profile.html", requests=requests)
 
+# PIN Edit Profile
+@pin.route('/edit-profile/<int:user_id>', methods=['GET', 'POST'])
+@login_required
+def edit_profile():
+    # User must be the PIN
+    if current_user.role != 'PIN':
+        flash('Access denied.', 'danger')
+        return redirect(url_for('views.home'))
+    
+
+    def update_current_user(name, email):
+            current_user.name = name
+            current_user.email = email
+            db.session.commit()
+
+    if request.method == 'POST':
+        name = request.form.get('name')
+        email = request.form.get('email')
+
+        if not name or not email:
+            flash("Please fill out all required fields.", "warning")
+            return redirect(url_for('views.edit_profile'))
+
+        existing_user = User.query.filter_by(email=email).first()
+        if existing_user and existing_user.id != current_user.id:
+            flash("Email is already in use.", "danger")
+            return redirect(url_for('pin.edit_profile'))
+        
+
+        update_current_user(name, email)
+
+        flash("Profile updated successfully!", "success")
+        return redirect(url_for('pin.profile'))
+
 @pin.route('/request/<int:request_id>/review', methods=['GET', 'POST'])
 @login_required
 def review_request(request_id):

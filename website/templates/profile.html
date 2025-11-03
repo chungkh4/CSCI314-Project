@@ -66,7 +66,6 @@
                                     <i class="bi bi-slash-circle" style="font-size: 4rem; color: #ccc;"></i>
                                     <h4 class="text-muted">Requests are not available for this account.</h4>
                                 </div>
-
                             {% elif user.status == "Pending" or user.status == "Suspended" %}
                                 <div class="text-center py-5">
                                     <i class="bi bi-lock" style="font-size: 4rem; color: #ccc;"></i>
@@ -75,7 +74,6 @@
                                         This account is currently inactive.
                                     </p>
                                 </div>
-
                             {% else %}
                                 {% if current_user.id == user.id %}
                                     <!-- Owner View -->

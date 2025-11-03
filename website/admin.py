@@ -37,18 +37,14 @@ def suspend_user(id):
     return redirect(url_for('admin.dashboard'))
 
 @admin.route('/edit-profile/<int:user_id>', methods=['GET', 'POST'])
-# @login_required
+@login_required
 def edit_profile(user_id):
-    # if current_user.role != 'Admin':
-    #     flash("Only admin can access this page!.", "danger")
-    #     return redirect(url_for('views.home'))
 
     user = User.query.get_or_404(user_id)
 
     if request.method == 'POST':
         name = request.form.get('name')
         email = request.form.get('email')
-        # role = request.form.get('role') # Uncomment if role change is allowed
 
         if not name or not email:
             flash("Please fill out all required fields.", "warning")
