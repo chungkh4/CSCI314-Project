@@ -418,74 +418,93 @@ def create_app():
             db.session.commit()
         click.echo(f"Seeded {created} PIN accounts. Skipped {skipped}.")
 
-    # ----- CLI: seed PIN requests -----
-    from datetime import datetime, timedelta
-
-    @app.cli.command("seed_requests")
-    @click.option("--pin-start", default=1, show_default=True, help="Starting PIN index.")
-    @click.option("--pin-end", default=100, show_default=True, help="Ending PIN index.")
-    @click.option("--per-category", default=2, show_default=True, help="Requests per category per PIN.")
-    def seed_requests(pin_start, pin_end, per_category):
+    # ----- CLI: seed requests for PIN users -----
+    @app.cli.command("seed_pin_requests")
+    @click.option("--per-cat", default=2, show_default=True, type=int,
+                  help="How many requests each PIN creates per category.")
+    @click.option("--only-prefix", default="pin", show_default=True,
+                  help="Only include PIN users whose name starts with this.")
+    @click.option("--clear-first", is_flag=True,
+                  help="Delete all existing requests before seeding.")
+    def seed_pin_requests(per_cat, only_prefix, clear_first):
         """
-        Bulk-create requests for PIN users across all categories.
         Example:
-            py -m flask --app main.py seed_requests --pin-start 1 --pin-end 100 --per-category 2
+          py -m flask --app main.py seed_pin_requests --per-cat 2 --clear-first
         """
+        from datetime import datetime, timedelta
+        import random
         from .models import User, Category, Request
-        created, skipped = 0, 0
+
+        def random_future_dt():
+            days = random.randint(1, 45)
+            hour = random.choice([9, 10, 11, 13, 14, 15, 16, 17])
+            minute = random.choice([0, 15, 30, 45])
+            return (datetime.utcnow().replace(second=0, microsecond=0)
+                    + timedelta(days=days)).replace(hour=hour, minute=minute)
 
         with app.app_context():
+            # 0) Optionally clear requests first
+            if clear_first:
+                deleted = db.session.query(Request).delete()
+                db.session.commit()
+                click.echo(f"🗑️ Deleted {deleted} existing requests.")
+
+            # 1) Load categories and PIN users
             categories = db.session.scalars(db.select(Category).order_by(Category.id)).all()
             if not categories:
-                click.echo("❌ No categories found. Seed categories first.")
+                click.echo("No categories found. Aborting.")
                 return
 
-            now = datetime.utcnow()
-            for i in range(pin_start, pin_end + 1):
-                uname = f"pin{i}"
-                uemail = f"pin{i}@email.com"
-                user = db.session.scalar(
-                    db.select(User).where(
-                        (func.lower(User.name) == uname.lower()) | (func.lower(User.email) == uemail.lower())
-                    )
-                )
-                if not user:
-                    skipped += len(categories) * per_category
-                    continue
+            pins = db.session.scalars(
+                db.select(User)
+                .where(User.role == "PIN")
+                .where(User.name.ilike(f"{only_prefix}%"))
+                .order_by(User.id)
+            ).all()
+            if not pins:
+                click.echo("No PIN users found. Aborting.")
+                return
 
-                for cat in categories:
-                    for j in range(per_category):
-                        title = f"{cat.name} Request #{j + 1} by {uname}"
-                        desc = f"Requesting assistance with {cat.name.lower()} (auto-generated)."
-                        sched = now + timedelta(days=i % 14, hours=j)
+            # 2) Generate requests
+            created = 0
+            batch = 0
+            titles_cache = {}
 
-                        exists = db.session.scalar(
-                            db.select(Request.id).where(
-                                Request.user_id == user.id,
-                                Request.category_id == cat.id,
-                                Request.title == title
-                            )
-                        )
-                        if exists:
-                            skipped += 1
-                            continue
+            for u in pins:
+                for c in categories:
+                    for k in range(per_cat):
+                        # Make a short, natural title and description
+                        tkey = (c.id, k)
+                        if tkey not in titles_cache:
+                            titles_cache[tkey] = f"{c.name}: help needed #{k + 1}"
+                        title = titles_cache[tkey]
+                        desc = f"Looking for support for {c.name.lower()}. Flexible timing if possible."
 
                         req = Request(
                             title=title,
                             description=desc,
-                            category_id=cat.id,
+                            category_id=c.id,
                             status="Pending",
-                            scheduled_datetime=sched,
+                            scheduled_datetime=random_future_dt(),
                             view_count=0,
-                            date_created=now,
-                            user_id=user.id,
+                            user_id=u.id,  # requester is the PIN user
                             volunteer_id=None,
                             csr_id=None,
                         )
                         db.session.add(req)
                         created += 1
+                        batch += 1
 
-            db.session.commit()
-        click.echo(f"✅ Created {created} new requests; skipped {skipped} duplicates.")
+                        # Commit in chunks for speed and lower memory use
+                        if batch >= 1000:
+                            db.session.commit()
+                            batch = 0
+
+            if batch:
+                db.session.commit()
+
+            click.echo(f"✅ Created {created} requests for {len(pins)} PIN users "
+                       f"across {len(categories)} categories "
+                       f"({per_cat} per category).")
 
     return app
