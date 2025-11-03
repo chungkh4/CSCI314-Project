@@ -125,4 +125,55 @@ def create_app():
             db.session.commit()
         click.echo(f"Inserted {inserted} categories from {file_path}.")
 
+    # ----- CLI: seed CSR accounts (idempotent) -----
+    @app.cli.command("seed_csrs")
+    @click.option("--file", "file_path", type=click.Path(exists=True), help="CSV with headers: email,username,password,confirm_password,role")
+    def seed_csrs(file_path):
+        """
+        Usage:
+          flask seed_csrs --file scripts/csr_accounts.csv
+        """
+        if not file_path:
+            click.echo("Please pass --file path/to/csr_accounts.csv")
+            return
+
+        from .models import User  # import here to avoid circular import
+
+        created = 0
+        skipped = 0
+        with app.app_context():
+            with open(file_path, newline="", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    email = (row.get("email") or "").strip()
+                    username = (row.get("username") or "").strip()
+                    password = (row.get("password") or "").strip()
+                    role = (row.get("role") or "CSR").strip()
+
+                    if not email or not username or not password:
+                        skipped += 1
+                        continue
+
+                    # Skip if email or username already exists
+                    exists = db.session.scalar(
+                        db.select(User.id).where(func.lower(User.email) == email.lower())
+                    )
+                    if exists:
+                        skipped += 1
+                        continue
+
+                    user = User(
+                        name=username,
+                        email=email,
+                        password=generate_password_hash(password, method="pbkdf2:sha256"),
+                        role=role,
+                        status="Active"
+                    )
+                    db.session.add(user)
+                    created += 1
+
+                db.session.commit()
+        click.echo(f"✅ Seeded {created} CSR accounts. Skipped {skipped} duplicates or invalid entries.")
+
+
     return app
