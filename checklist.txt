@@ -15,16 +15,16 @@ CSR
 	- CSR Login/Logout -Kh
 	- CSR Delete Account-Rhizo
 	- CSR Edit/update Info - Kh
-	- CSR Dashboard
+	- CSR Dashboard 
 		- Accept Request
 		- Search/Filter Request-Rhizo
-	- CSR Assign to Volunteer -
+	- CSR Assign to Volunteer - Jeddi
 	- CSR Delete Request - delete function
 	- CSR Add request to shortlist - KH
 
 Admin
 - Admin Dashboard - kh
-	- Suspend/Delete/View user/Update User Account
+	- Suspend/Delete/View user/Update User Account 
 	- Search User - Lya
 	- Filter by role
 	Create User Account w Temporary Password
@@ -39,7 +39,7 @@ Platform Manager
 - Generate daily report - Manfred (checked and updated)
 
 Volunteer
-- Create Account
+- Create Account - Jeddi
 - Login/logout -Kh
 - Accept/decline the assigned request - Min
 - Volunteer Dashboard - Min
