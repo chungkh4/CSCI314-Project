@@ -12,18 +12,22 @@ views = Blueprint('views', __name__)
 # Home Page
 @views.route('/')
 def home():
+    # Redirect unauthenticated users to login
+    if not current_user.is_authenticated:
+        return redirect(url_for('auth.login'))
+
     # Get all categories from database
     categories = Category.query.order_by(Category.name).all()
-    
+
     # Get filter parameters
     search_query = request.args.get('q', '').strip()
     category_filter = request.args.get('category', '')
     status_filter = request.args.get('status', '')
     sort_by = request.args.get('sort', 'newest')
-    
+
     # Start with base query
     query = Request.query
-    
+
     # Apply search filter (searches in title and description)
     if search_query:
         search_pattern = f"%{search_query}%"
@@ -33,15 +37,15 @@ def home():
                 Request.description.ilike(search_pattern)
             )
         )
-    
+
     # Apply category filter
     if category_filter:
         query = query.join(Category).filter(Category.name == category_filter)
-    
+
     # Apply status filter
     if status_filter:
         query = query.filter(Request.status == status_filter)
-    
+
     # Apply sorting
     if sort_by == 'oldest':
         query = query.order_by(Request.date_created.asc())
@@ -51,16 +55,17 @@ def home():
         query = query.order_by(Request.title.asc())
     else:  # newest (default)
         query = query.order_by(Request.date_created.desc())
-    
+
     # Execute query
     requests = query.all()
-    
+
     return render_template(
-        'home.html', 
-        user=current_user, 
+        'home.html',
+        user=current_user,
         requests=requests,
         categories=categories
     )
+
 
 # Edit Profile For all user
 @views.route('/edit-profile', methods=['GET', 'POST'])
