@@ -119,6 +119,7 @@ def delete_account():
 
             # Unassign all requests assigned to this volunteer
             assigned_requests = Request.query.filter_by(volunteer_id=volunteer.id).all()
+            
             for req in assigned_requests:
                 req.volunteer_id = None
                 req.status = 'Pending'  # Reset status back to Pending
