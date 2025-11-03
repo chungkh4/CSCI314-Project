@@ -72,7 +72,7 @@ class Request(db.Model):
     # Foreign key to volunteer assigned to this request
     volunteer_id = db.Column(db.Integer, db.ForeignKey('volunteer.id'), nullable=True)
 
-    csr_id = db.Column(db.Integer, db.ForeignKey("csr.user_id"), nullable=True)
+    #csr_id = db.Column(db.Integer, db.ForeignKey("csr.user_id"), nullable=True)
 
     # Relationships
     user = db.relationship('User', backref=db.backref('requests', lazy=True, cascade='all, delete-orphan'), lazy=True)
