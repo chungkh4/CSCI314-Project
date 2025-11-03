@@ -8,6 +8,7 @@ from flask_login import LoginManager
 from sqlalchemy import func
 from werkzeug.security import generate_password_hash
 
+
 # --- DB handle (shared) ---
 db = SQLAlchemy()
 
@@ -233,4 +234,57 @@ def create_app():
 
                 db.session.commit()
         click.echo(f"✅ Seeded {created} volunteer accounts. Skipped {skipped} duplicates or invalid entries.")
+
+    # ----- CLI: seed PIN accounts (idempotent) -----
+    @app.cli.command("seed_pins")
+    @click.option("--file", "file_path", type=click.Path(exists=True),
+                  help="CSV with headers: email,username,password,confirm_password,role")
+    def seed_pins(file_path):
+        """
+        Usage:
+          flask seed_pins --file scripts/pin_accounts.csv
+        """
+        if not file_path:
+            click.echo("Please pass --file path/to/pin_accounts.csv")
+            return
+
+        from .models import User
+        created = 0
+        skipped = 0
+        with app.app_context():
+            import csv
+            from sqlalchemy import func
+            from werkzeug.security import generate_password_hash
+
+            with open(file_path, newline="", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    email = (row.get("email") or "").strip()
+                    username = (row.get("username") or "").strip()
+                    password = (row.get("password") or "").strip()
+                    role = (row.get("role") or "PIN").strip()
+
+                    if not email or not username or not password:
+                        skipped += 1
+                        continue
+
+                    exists = db.session.scalar(
+                        db.select(User.id).where(func.lower(User.email) == email.lower())
+                    )
+                    if exists:
+                        skipped += 1
+                        continue
+
+                    user = User(
+                        name=username,
+                        email=email,
+                        password=generate_password_hash(password, method="pbkdf2:sha256"),
+                        role=role,  # must be exactly 'PIN' to get PIN features
+                        status="Active"
+                    )
+                    db.session.add(user)
+                    created += 1
+            db.session.commit()
+        click.echo(f"Seeded {created} PIN accounts. Skipped {skipped}.")
+
     return app

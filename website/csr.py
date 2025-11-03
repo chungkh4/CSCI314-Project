@@ -1,6 +1,6 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
-from .models import Request, Category, User, Volunteer
+from .models import Request, Category, User, Volunteer, Csr
 from . import db
 
 csr = Blueprint('csr', __name__)
