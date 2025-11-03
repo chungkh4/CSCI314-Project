@@ -58,9 +58,7 @@ def volunteer_dashboard():
 @volunteer.route('/request/<int:request_id>/volunteer_accept', methods=['POST'])
 @login_required
 def volunteer_accept_task(request_id):
-    """Volunteer confirms they are working on the assigned task"""
-    
-    
+    # check if user is a volunteer
     if current_user.role != 'Volunteer':
         flash('Access denied.', 'danger')
         return redirect(url_for('views.home'))
@@ -71,16 +69,7 @@ def volunteer_accept_task(request_id):
         flash('Volunteer profile not found.', 'danger')
         return redirect(url_for('views.home'))
     
-    req = Request.query.get_or_404(request_id)
-    
-    # Verify this request is assigned to this volunteer
-    # if req.volunteer_id != volunteer_profile.id:
-    #     flash('This request is not assigned to you.', 'danger')
-    #     return redirect(url_for('volunteer.volunteer_dashboard'))
-    
-    # if req.status != 'Assigned':
-    #     flash('This task cannot be started at this time.', 'warning')
-    #     return redirect(url_for('volunteer.volunteer_dashboard'))
+    req = Request.query.get_or_404(request_id) # get request
     
     try:
         volunteer_profile.is_available = False

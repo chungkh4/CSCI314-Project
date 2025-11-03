@@ -1,6 +1,7 @@
 import datetime
 from flask import Blueprint, Request, render_template, request, flash, redirect, url_for
-from .models import Category, User, Volunteer, Logout, Shortlist, Csr
+from .models import Category, Review, User, Volunteer, Logout, Shortlist, Csr
+from .models import Request as RequestModel
 from . import db
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -120,29 +121,38 @@ def delete_account():
         return redirect(url_for('views.manager_profile'))
 
     try:
-        # 1. Delete all user's requests first
-        Request.query.filter_by(user_id=user.id).delete()
+        user_id = user.id
+        user_role = user.role
 
-        # 2. If user is a volunteer, handle volunteer profile
-        if user.role == 'Volunteer' and user.volunteer_profile:
-            volunteer = user.volunteer_profile
-
-            # Unassign all requests assigned to this volunteer
-            assigned_requests = Request.query.filter_by(volunteer_id=volunteer.id).all()
-            for req in assigned_requests:
-                req.volunteer_id = None
-                req.status = 'Pending'  # Reset status back to Pending
-
-            # 3. Delete volunteer profile
-            db.session.delete(volunteer)
-
+        # 1.user is a volunteer
+        if user_role == 'Volunteer':
+            volunteer = Volunteer.query.filter_by(user_id=user_id).first()
+            
+            if volunteer:
+                # Unassign all requests assigned to this volunteer
+                assigned_requests = RequestModel.query.filter_by(volunteer_id=volunteer.id).all()
+                for req in assigned_requests:
+                    req.volunteer_id = None
+                    req.status = 'Pending'  # Reset status back to Pending
+                
+                # Delete all reviews for this volunteer
+                Review.query.filter_by(volunteer_id=volunteer.id).delete()
+                
+                # Delete the volunteer profile
+                db.session.delete(volunteer)
+        
+        # 2. Delete all reviews written by this user (if PIN)
+        Review.query.filter_by(user_id=user_id).delete()
+        # 3. Delete all user's requests
+        RequestModel.query.filter_by(user_id=user_id).delete()
         # 4. Finally, delete the user
+        
         db.session.delete(user)
+    
+        # 5. Commit all changes
         db.session.commit()
-
-        # 5. Log them out
+        # Logoout User
         logout_user()
-
         flash('Your account has been deleted successfully.', category='success')
         return redirect(url_for('auth.login'))
 
@@ -150,7 +160,15 @@ def delete_account():
         db.session.rollback()
         flash('An error occurred while deleting your account. Please try again.', category='danger')
         print("Error deleting account:", e)
-        return redirect(url_for('views.home'))
+        print("Error type:", type(e).__name__)
+        import traceback
+        traceback.print_exc()  # This will print the full error traceback
+        
+        # If user was logged out, redirect to login
+        if not current_user.is_authenticated:
+            return redirect(url_for('auth.login'))
+        
+        return redirect(url_for('volunteer.volunteer_dashboard'))
 
 
 # User changes password
