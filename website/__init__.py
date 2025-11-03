@@ -179,67 +179,192 @@ def create_app():
         click.echo(f"✅ Seeded {created} CSR accounts. Skipped {skipped} duplicates or invalid entries.")
 
     # ----- CLI: seed Volunteer accounts (idempotent) -----
+    # ----- CLI: seed volunteers from CSV (creates user + volunteer rows) -----
     @app.cli.command("seed_volunteers")
-    @click.option("--file", "file_path", type=click.Path(exists=True), help="CSV with headers: email,username,password,confirm_password,role,category")
+    @click.option(
+        "--file", "file_path",
+        type=click.Path(exists=True),
+        required=True,
+        help="CSV headers: email,username,password,role,category"
+    )
     def seed_volunteers(file_path):
         """
         Usage:
           flask seed_volunteers --file scripts/volunteer_accounts.csv
+        Creates/updates User(role='Volunteer') and ensures a row exists in volunteer table.
         """
-        if not file_path:
-            click.echo("Please pass --file path/to/volunteer_accounts.csv")
-            return
+        from .models import User, Category, Volunteer
 
-        from .models import User, Category, Volunteer # import inside to avoid circulars
-
-        created = 0
+        created_users = 0
+        created_vol_rows = 0
         skipped = 0
-        with app.app_context():
-            with open(file_path, newline="", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    email = (row.get("email") or "").strip()
-                    username = (row.get("username") or "").strip()
-                    password = (row.get("password") or "").strip()
-                    role = (row.get("role") or "Volunteer").strip()
-                    category_name = (row.get("category") or "").strip()
 
-                    if not email or not username or not password:
-                        skipped += 1
-                        continue
+        with app.app_context(), open(file_path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                email = (row.get("email") or "").strip()
+                username = (row.get("username") or "").strip()
+                password = (row.get("password") or "").strip() or "1234567"
+                role = (row.get("role") or "Volunteer").strip()
+                category_name = (row.get("category") or "").strip()
 
-                    # Skip duplicates
-                    exists = db.session.scalar(
-                        db.select(User.id).where(func.lower(User.email) == email.lower())
-                    )
-                    if exists:
-                        skipped += 1
-                        continue
+                if not email or not username:
+                    skipped += 1
+                    continue
 
-                    # Find matching category (optional)
-                    category = db.session.scalar(
-                        db.select(Category).where(func.lower(Category.name) == category_name.lower())
-                    )
-
+                # Find or create the user
+                user = db.session.scalar(
+                    db.select(User).where(func.lower(User.email) == email.lower())
+                )
+                if not user:
                     user = User(
                         name=username,
                         email=email,
                         password=generate_password_hash(password, method="pbkdf2:sha256"),
-                        role=role,
-                        status="Active"
+                        role="Volunteer",  # normalize casing
+                        status="Active",
                     )
-
-                    volunteer = Volunteer(
-                        user_id=user.id,
-                        category_id=category.id if category else None
-                    )
-
                     db.session.add(user)
-                    db.session.add(volunteer)
-                    created += 1
+                    db.session.flush()  # get user.id
+                    created_users += 1
+                else:
+                    # make sure role/status are correct
+                    user.role = "Volunteer"
+                    if not user.status:
+                        user.status = "Active"
 
-                db.session.commit()
-        click.echo(f"✅ Seeded {created} volunteer accounts. Skipped {skipped} duplicates or invalid entries.")
+                # Resolve category id (optional)
+                cat_id = None
+                if category_name:
+                    cat_id = db.session.scalar(
+                        db.select(Category.id)
+                        .where(func.lower(Category.name) == category_name.lower())
+                    )
+
+                # Ensure a volunteer row exists
+                exists_vol = db.session.scalar(
+                    db.select(Volunteer.id).where(Volunteer.user_id == user.id)
+                )
+                if not exists_vol:
+                    vol = Volunteer(
+                        user_id=user.id,
+                        category_id=cat_id,
+                        is_available=True,
+                        total_tasks_completed=0
+                    )
+                    db.session.add(vol)
+                    created_vol_rows += 1
+
+            db.session.commit()
+        click.echo(f"Users created: {created_users}, volunteer rows created: {created_vol_rows}, skipped: {skipped}")
+
+    @app.cli.command("map_volunteer_categories")
+    @click.option(
+        "--file", "file_path",
+        type=click.Path(exists=True), required=True,
+        help="CSV headers: email OR username, and category"
+    )
+    def map_volunteer_categories(file_path):
+        """
+        Usage:
+          flask map_volunteer_categories --file scripts/volunteer_accounts.csv
+        For each row, finds the User (by email or username), finds their Volunteer row,
+        looks up Category by name, and sets volunteer.category_id.
+        """
+        from .models import User, Volunteer, Category
+
+        updated = 0
+        missing_user = 0
+        missing_vol = 0
+        missing_cat = 0
+
+        with app.app_context(), open(file_path, newline="", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                email = (row.get("email") or "").strip()
+                username = (row.get("username") or "").strip()
+                cat_name = (row.get("category") or "").strip()
+
+                if not (email or username) or not cat_name:
+                    continue
+
+                # Find user by email first, then username
+                q = db.select(User)
+                if email:
+                    q = q.where(func.lower(User.email) == email.lower())
+                else:
+                    q = q.where(func.lower(User.name) == username.lower())
+                user = db.session.scalar(q)
+
+                if not user:
+                    missing_user += 1
+                    continue
+
+                vol = db.session.scalar(
+                    db.select(Volunteer).where(Volunteer.user_id == user.id)
+                )
+                if not vol:
+                    missing_vol += 1
+                    continue
+
+                cat_id = db.session.scalar(
+                    db.select(Category.id)
+                      .where(func.lower(Category.name) == cat_name.lower())
+                )
+                if not cat_id:
+                    missing_cat += 1
+                    continue
+
+                if vol.category_id != cat_id:
+                    vol.category_id = cat_id
+                    updated += 1
+
+            db.session.commit()
+
+        click.echo(
+            f"Updated category_id for {updated} volunteers. "
+            f"Missing user: {missing_user}, missing volunteer row: {missing_vol}, "
+            f"missing category: {missing_cat}."
+        )
+
+
+    # ----- CLI: backfill volunteer rows for existing Volunteer users -----
+    @app.cli.command("backfill_volunteers")
+    @click.option(
+        "--default-available/--no-default-available",
+        default=True,
+        help="Set is_available True for backfilled rows (default: True)"
+    )
+    def backfill_volunteers(default_available):
+        """
+        Usage:
+          flask backfill_volunteers
+        Creates a row in volunteer table for every User with role='Volunteer' that
+        doesn't already have one. Leaves category_id NULL unless you map it later.
+        """
+        from .models import User, Volunteer
+
+        to_backfill = db.session.scalars(
+            db.select(User).where(func.lower(User.role) == "volunteer")
+        ).all()
+
+        created = 0
+        for u in to_backfill:
+            exists = db.session.scalar(
+                db.select(Volunteer.id).where(Volunteer.user_id == u.id)
+            )
+            if exists:
+                continue
+            db.session.add(Volunteer(
+                user_id=u.id,
+                category_id=None,  # set later if needed
+                is_available=bool(default_available),
+                total_tasks_completed=0
+            ))
+            created += 1
+
+        db.session.commit()
+        click.echo(f"Backfilled {created} volunteer rows.")
 
     # ----- CLI: seed PIN accounts (idempotent) -----
     @app.cli.command("seed_pins")
@@ -292,5 +417,75 @@ def create_app():
                     created += 1
             db.session.commit()
         click.echo(f"Seeded {created} PIN accounts. Skipped {skipped}.")
+
+    # ----- CLI: seed PIN requests -----
+    from datetime import datetime, timedelta
+
+    @app.cli.command("seed_requests")
+    @click.option("--pin-start", default=1, show_default=True, help="Starting PIN index.")
+    @click.option("--pin-end", default=100, show_default=True, help="Ending PIN index.")
+    @click.option("--per-category", default=2, show_default=True, help="Requests per category per PIN.")
+    def seed_requests(pin_start, pin_end, per_category):
+        """
+        Bulk-create requests for PIN users across all categories.
+        Example:
+            py -m flask --app main.py seed_requests --pin-start 1 --pin-end 100 --per-category 2
+        """
+        from .models import User, Category, Request
+        created, skipped = 0, 0
+
+        with app.app_context():
+            categories = db.session.scalars(db.select(Category).order_by(Category.id)).all()
+            if not categories:
+                click.echo("❌ No categories found. Seed categories first.")
+                return
+
+            now = datetime.utcnow()
+            for i in range(pin_start, pin_end + 1):
+                uname = f"pin{i}"
+                uemail = f"pin{i}@email.com"
+                user = db.session.scalar(
+                    db.select(User).where(
+                        (func.lower(User.name) == uname.lower()) | (func.lower(User.email) == uemail.lower())
+                    )
+                )
+                if not user:
+                    skipped += len(categories) * per_category
+                    continue
+
+                for cat in categories:
+                    for j in range(per_category):
+                        title = f"{cat.name} Request #{j + 1} by {uname}"
+                        desc = f"Requesting assistance with {cat.name.lower()} (auto-generated)."
+                        sched = now + timedelta(days=i % 14, hours=j)
+
+                        exists = db.session.scalar(
+                            db.select(Request.id).where(
+                                Request.user_id == user.id,
+                                Request.category_id == cat.id,
+                                Request.title == title
+                            )
+                        )
+                        if exists:
+                            skipped += 1
+                            continue
+
+                        req = Request(
+                            title=title,
+                            description=desc,
+                            category_id=cat.id,
+                            status="Pending",
+                            scheduled_datetime=sched,
+                            view_count=0,
+                            date_created=now,
+                            user_id=user.id,
+                            volunteer_id=None,
+                            csr_id=None,
+                        )
+                        db.session.add(req)
+                        created += 1
+
+            db.session.commit()
+        click.echo(f"✅ Created {created} new requests; skipped {skipped} duplicates.")
 
     return app
