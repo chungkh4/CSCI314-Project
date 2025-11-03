@@ -233,6 +233,4 @@ def create_app():
 
                 db.session.commit()
         click.echo(f"✅ Seeded {created} volunteer accounts. Skipped {skipped} duplicates or invalid entries.")
-
-
     return app
