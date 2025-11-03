@@ -68,6 +68,8 @@ def create_app():
         if not os.path.exists(DB_PATH):
             db.create_all()
             print("Created database at:", DB_PATH)
+        else: 
+            print("Database already exists at:", DB_PATH)
 
         # create admin once
         exists_admin = db.session.scalar(
