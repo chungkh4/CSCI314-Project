@@ -176,5 +176,62 @@ def create_app():
                 db.session.commit()
         click.echo(f"✅ Seeded {created} CSR accounts. Skipped {skipped} duplicates or invalid entries.")
 
+    # ----- CLI: seed Volunteer accounts (idempotent) -----
+    @app.cli.command("seed_volunteers")
+    @click.option("--file", "file_path", type=click.Path(exists=True), help="CSV with headers: email,username,password,confirm_password,role,category")
+    def seed_volunteers(file_path):
+        """
+        Usage:
+          flask seed_volunteers --file scripts/volunteer_accounts.csv
+        """
+        if not file_path:
+            click.echo("Please pass --file path/to/volunteer_accounts.csv")
+            return
+
+        from .models import User, Category  # import inside to avoid circulars
+
+        created = 0
+        skipped = 0
+        with app.app_context():
+            with open(file_path, newline="", encoding="utf-8") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    email = (row.get("email") or "").strip()
+                    username = (row.get("username") or "").strip()
+                    password = (row.get("password") or "").strip()
+                    role = (row.get("role") or "Volunteer").strip()
+                    category_name = (row.get("category") or "").strip()
+
+                    if not email or not username or not password:
+                        skipped += 1
+                        continue
+
+                    # Skip duplicates
+                    exists = db.session.scalar(
+                        db.select(User.id).where(func.lower(User.email) == email.lower())
+                    )
+                    if exists:
+                        skipped += 1
+                        continue
+
+                    # Find matching category (optional)
+                    category = db.session.scalar(
+                        db.select(Category).where(func.lower(Category.name) == category_name.lower())
+                    )
+
+                    user = User(
+                        name=username,
+                        email=email,
+                        password=generate_password_hash(password, method="pbkdf2:sha256"),
+                        role=role,
+                        status="Active"
+                    )
+
+                    db.session.add(user)
+                    created += 1
+
+                db.session.commit()
+        click.echo(f"✅ Seeded {created} volunteer accounts. Skipped {skipped} duplicates or invalid entries.")
+
 
     return app
