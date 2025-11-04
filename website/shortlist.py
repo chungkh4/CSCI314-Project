@@ -10,10 +10,9 @@ shortlist = Blueprint('shortlist', __name__)
 @shortlist.route('/request/<int:request_id>/csr_shortlist', methods=['POST'])
 @login_required
 def shortlist_request(request_id):
-    # Use the IDs matching your database columns and context
     csr_account_id = current_user.id
 
-    # 1. Check if the item is already shortlisted (Query uses the composite PK columns)
+    # check if the item is already shortlisted
     existing_entry = Shortlist.query.get((csr_account_id, request_id))
 
     redirect_page = request.referrer or url_for('default_page')
@@ -22,10 +21,10 @@ def shortlist_request(request_id):
         flash('Item is already in your shortlist.', 'info')
         return redirect(redirect_page)
 
-    # 2. Create and add the new entry (Initialization uses the model's property names)
+    # create and add the new entry
     new_shortlist = Shortlist(
-        user_id=csr_account_id,  # Matches the 'user_id' column
-        shortlist_request_id=request_id  # Matches the 'shortlist_request_id' column
+        user_id=csr_account_id,
+        shortlist_request_id=request_id
     )
 
     try:
@@ -34,7 +33,6 @@ def shortlist_request(request_id):
         flash(f'Request successfully added to shortlist!', 'success')
     except Exception as e:
         db.session.rollback()
-        # Log the error (crucial for debugging)
         print(f"Database Error: {e}")
         flash('An error occurred while saving to the shortlist.', 'danger')
 

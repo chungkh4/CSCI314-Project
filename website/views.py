@@ -6,10 +6,9 @@ from website.models import Category, Request, User
 
 from datetime import datetime
 
-
-
 # url holders
 views = Blueprint('views', __name__)
+
 
 # Home Page
 @views.route('/')
@@ -96,6 +95,7 @@ def edit_profile():
 
     return render_template('edit_profile.html', user=current_user)
 
+
 @views.route('/csr/profile')
 @login_required
 def csr_profile():
@@ -104,6 +104,7 @@ def csr_profile():
         return redirect(url_for('views.home'))
     return render_template('csr_profile.html', user=current_user)
 
+
 @views.route('/platform-manager/profile')
 @login_required
 def platform_manager_profile():
@@ -111,6 +112,7 @@ def platform_manager_profile():
         flash('Cannot access this Profile.', 'danger')
         return redirect(url_for('views.home'))
     return render_template('platform_manager_profile.html', user=current_user)
+
 
 # views other users' profiles
 @views.route('/profile/<int:user_id>')
@@ -123,11 +125,11 @@ def profile(user_id):
 
     return render_template('profile.html', user=user, is_owner=is_owner)
 
+
 # Create Requests
 @views.route('/create-request', methods=['GET', 'POST'])
 @login_required
 def create_request():
-
     now_str = datetime.now().strftime('%Y-%m-%dT%H:%M')
 
     if request.method == 'POST':
@@ -135,7 +137,6 @@ def create_request():
         category_id = request.form['category_id']
         description = request.form['description']
         scheduled_datetime = request.form['scheduled_datetime']
-
 
         if not category_id:
             flash('Please select a category.', 'danger')
@@ -158,6 +159,7 @@ def create_request():
 
     categories = Category.query.all()
     return render_template('create_request.html', categories=categories, now_str=now_str)
+
 
 # Edit Requests by ID
 @views.route('/request/<int:id>/edit', methods=['GET', 'POST'])
@@ -189,6 +191,7 @@ def edit_request(id):
 
     return render_template('edit_request.html', req=req, categories=categories)
 
+
 @views.route('/approve/<int:id>')
 @login_required
 def approve_request(id):
@@ -201,6 +204,7 @@ def approve_request(id):
     db.session.commit()
     flash(f"Request '{req.title}' approved successfully.", "success")
     return redirect(url_for('views.home'))
+
 
 # Update Requests
 @views.route('/update_request/<int:id>', methods=['POST'])
@@ -222,6 +226,7 @@ def update_request(id):
     db.session.commit()
     flash(f"Request '{req.title}' status updated to {new_status}.", "success")
     return redirect(url_for('views.csr_profile'))
+
 
 # View Specific Request with ID
 @views.route('/request/<int:id>')

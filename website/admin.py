@@ -117,7 +117,6 @@ def clear_database():
             if table.name.lower() != "user":
                 db.session.execute(table.delete())
 
-                # ✅ Safe reset for all database types
                 if engine.dialect.name == "sqlite":
                     # check if sqlite_sequence exists before touching it
                     exists = db.session.execute(
