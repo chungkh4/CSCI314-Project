@@ -246,7 +246,6 @@ def _safe_date(value, default=None):
 def _request_date_col():
     return Request.date_created
 
-
 @platform.route("/reports", methods=["GET", "POST"])
 @login_required
 def platform_reports():
