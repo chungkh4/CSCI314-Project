@@ -420,7 +420,7 @@ def create_app():
 
     # ----- CLI: seed requests for PIN users -----
     @app.cli.command("seed_pin_requests")
-    @click.option("--per-cat", default=2, show_default=True, type=int,
+    @click.option("--per-cat", default=1, show_default=True, type=int,
                   help="How many requests each PIN creates per category.")
     @click.option("--only-prefix", default="pin", show_default=True,
                   help="Only include PIN users whose name starts with this.")
@@ -429,7 +429,7 @@ def create_app():
     def seed_pin_requests(per_cat, only_prefix, clear_first):
         """
         Example:
-          py -m flask --app main.py seed_pin_requests --per-cat 2 --clear-first
+          py -m flask --app main.py seed_pin_requests --per-cat 1 --clear-first
         """
         from datetime import datetime, timedelta
         import random
