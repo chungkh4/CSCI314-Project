@@ -65,19 +65,15 @@ The below instructions are on how to set up the system locally
 ``````
 git clone https://github.com/<your-username>/<repo-name>.git
 ``````
+2. Install Python
+3. Make sure venv is installed
 ``````
-- Step 1: Make sure venv is installed
-  sudo apt install python3-venv -y
-
-- Step 2: Create a virtual environment (in your project folder)
-  python3 -m venv venv
-
-- Step 3: Activate the virtual environment
-  source venv/bin/activate
-
-- Step 4: Now install Flask safely
-  pip install flask
+sudo apt install python3-venv -y
 ``````
+4. Step 4: Now install Flask safely
+``````
+pip install flask
+``````
+5. Run main.py in your preferred IDE
 
-last step. Run the program in your preferred IDE
-Open a browser and enter "http://127.0.0.1:5000/" for the login page
+6. Open a browser and enter "http://127.0.0.1:5000/" for the login page
