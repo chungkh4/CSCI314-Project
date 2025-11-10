@@ -88,6 +88,19 @@
   </nav>
 
 
+  <!-- WARNING FOR USERS CREATED BY ADMIN TO CHANGE PASSWORD -->
+  {% if current_user.is_authenticated and current_user.name and current_user.name.lower().startswith('temp-') %}
+    <div class="alert alert-warning d-flex justify-content-between align-items-center" role="alert" style="margin:0;">
+      <div>
+        Your profile credentials are temporary. Please <strong>change your username and password</strong>.
+      </div>
+      <a class="btn btn-sm btn-outline-dark" href="{{ url_for('auth.update_credentials') }}">
+        Update now
+      </a>
+    </div>
+  {% endif %}
+
+  
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
       {% for category, message in messages %}

@@ -4,6 +4,12 @@ from flask_login import login_required, current_user
 from .models import User, Request
 from . import db
 from werkzeug.security import generate_password_hash
+# website/admin.py
+from flask import Blueprint, render_template, request, redirect, url_for, flash
+from flask_login import login_required
+from . import db
+from .models import User, Category, Volunteer, Csr   # <-- add this line
+
 
 admin = Blueprint('admin', __name__)
 
@@ -39,16 +45,12 @@ def suspend_user(id):
 @admin.route('/edit-profile/<int:user_id>', methods=['GET', 'POST'])
 # @login_required
 def edit_profile(user_id):
-    # if current_user.role != 'Admin':
-    #     flash("Only admin can access this page!.", "danger")
-    #     return redirect(url_for('views.home'))
-
+    # assume page alreaday enforces only user admin can access admin dashboard
     user = User.query.get_or_404(user_id)
 
     if request.method == 'POST':
         name = request.form.get('name')
         email = request.form.get('email')
-        # role = request.form.get('role') # Uncomment if role change is allowed
 
         if not name or not email:
             flash("Please fill out all required fields.", "warning")
@@ -56,8 +58,8 @@ def edit_profile(user_id):
 
         existing_user = User.query.filter_by(email=email).first()
         if existing_user and existing_user.id != user.id:
-            flash("Email is already in use.", "danger")
-            return redirect(url_for('edit_profile', id=user.id))
+            flash("Email is already in use by another user.", "warning")
+            return render_template('edit_profile.html', user=user)
 
         # Update user info
         user.name = name
@@ -137,71 +139,109 @@ def clear_database():
         return jsonify({"error": str(e)}), 500
 
 
-# Function: Create User Profiles for PIN/CSR Rep/Platform Manager/Volunteer with temporary password
+### Create User Profiles for PIN/CSR Rep/Platform Manager/Volunteer with "temporary" password ###"
 ALLOWED_ROLES = {"CSR", "Platform Manager", "Volunteer", "PIN"}
-ALLOWED_STATUSES = {"Active", "Pending", "Suspended"}  # pick the set your app actually uses
+ALLOWED_STATUSES = {"Active", "Pending", "Suspended"}
+#fallback just in case
+TEMP_PREFIX = "temp-" #"temp-" associated to new "temp" user profiles created
+    
 
+def get_allowed_roles():
+    try:
+        rows = db.session.execute(
+            db.select(User.role).distinct().order_by(User.role)
+        ).all()
+        db_roles = [r[0] for r in rows if r[0]]
+    except Exception:
+        db_roles = []
+
+    roles = sorted(set(db_roles).union(ALLOWED_ROLES)) 
+    roles = [r for r in roles if r.lower() != "admin"] #role admin not allowed.
+    
+    return roles
+
+
+def get_allowed_statuses():
+    try:
+        rows = db.session.execute(
+            db.select(User.status).distinct().order_by(User.status)
+        ).all()
+        db_statuses = [s[0] for s in rows if s[0]]
+    except Exception:
+        db_statuses = []
+    return sorted(set(db_statuses).union(ALLOWED_STATUSES))
+
+
+TEMP_PREFIX = "temp-"  
 @admin.route('/admin/create-user', methods=['GET', 'POST'])
 @login_required
 def create_user():
-    # Authorize: adjust to your real admin role(s)
-    if getattr(current_user, "role", "").lower() != "admin":
-        return jsonify({"error": "Unauthorized"}), 403
+    allowed_roles = get_allowed_roles() or ['CSR', 'Platform Manager', 'Volunteer', 'PIN']
+    allowed_statuses = get_allowed_statuses() or ['Pending', 'Active', 'Suspended']
+    categories = Category.query.order_by(Category.name.asc()).all()
 
     if request.method == 'POST':
         fullname = (request.form.get('fullname') or '').strip()
-        email = (request.form.get('email') or '').strip().lower()
+        email = (request.form.get('email') or '').strip()
         temp_pw = (request.form.get('password') or '').strip()
         role = (request.form.get('role') or '').strip()
         status = (request.form.get('status') or '').strip()
 
-        # Normalize status text from form (e.g., "activated" -> "Active")
-        status_map = {
-            "activated": "Active",
-            "active": "Active",
-            "pending": "Pending",
-            "suspended": "Suspended",
-        }
-        status_normalized = status_map.get(status.lower(), status)
+        category_id_raw = (request.form.get('category_id') or '').strip()
+        category_id = int(category_id_raw) if category_id_raw.isdigit() else None
 
-        # ---- Correct validation ----
-        # 1) All fields present
+        # basic validation check
         if not (fullname and email and temp_pw and role and status):
             flash("Please fill all fields.", "warning")
             return redirect(url_for('admin.create_user'))
-
-        # 2) Role must be in allowed roles
-        if role not in ALLOWED_ROLES:
-            flash("Invalid role selected.", "danger")
+        if role not in allowed_roles:
+            flash("{role} role is not allowed.", "danger")
             return redirect(url_for('admin.create_user'))
-
-        # 3) Status must be in allowed statuses
-        if status_normalized not in ALLOWED_STATUSES:
-            flash("Invalid status. Please select a valid status.", "danger")
+        if status not in allowed_statuses:
+            flash("{status} is not allowed.", "danger")
             return redirect(url_for('admin.create_user'))
-
-        # 4) Unique email
+        if len(temp_pw) < 7:
+            flash('New password must be at least 7 characters.', "warning")
+            return redirect(url_for('admin.create_user'))
         if User.query.filter_by(email=email).first():
             flash("Email is already in use.", "danger")
             return redirect(url_for('admin.create_user'))
 
-        # Create user (hash password explicitly)
+        # ensure that volunteer role has associated category
+        if role == 'Volunteer':
+            if not category_id:
+                flash("Please select a service category for Volunteer.", "warning")
+                return redirect(url_for('admin.create_user'))
+            if not Category.query.get(category_id):
+                flash("Selected service category was not found.", "danger")
+                return redirect(url_for('admin.create_user'))
+
+        display_name = fullname
+        if not display_name.lower().startswith(TEMP_PREFIX):
+            display_name = f"{TEMP_PREFIX}{display_name}"
+
         user = User(
-            name=fullname,
+            name=display_name,
             email=email,
-            password=generate_password_hash(temp_pw, method='pbkdf2:sha256'), # consider adding flag/function where user logging in w temp password FORCED to change pw
+            password=generate_password_hash(temp_pw, method='pbkdf2:sha256'),
             role=role,
-            status=status_normalized,
+            status=status,
         )
         db.session.add(user)
-        db.session.commit()
+        db.session.flush()  
 
-        flash(f"User '{fullname}' ({role}) created with status '{status_normalized}'.", "success")
+        if role == 'Volunteer':
+            db.session.add(Volunteer(user_id=user.id, category_id=category_id))
+        elif role == 'CSR':
+            db.session.add(Csr(user_id=user.id, name=fullname, role=role))
+
+        db.session.commit()
+        flash(f"User {fullname} ({role}) has successfully been created with status: {status}.", "success")
         return redirect(url_for('admin.dashboard'))
 
-    # GET -> render form
     return render_template(
         'admin_dashboard_create_user_profile.html',
-        allowed_roles=sorted(ALLOWED_ROLES),
-        allowed_statuses=sorted(ALLOWED_STATUSES)
+        allowed_roles=allowed_roles,
+        allowed_statuses=allowed_statuses,
+        categories=categories
     )

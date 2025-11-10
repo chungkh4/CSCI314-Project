@@ -6,45 +6,86 @@
   <h1 class="mb-4">Create User Profile</h1>
 
   <form method="POST" action="{{ url_for('admin.create_user') }}" class="card p-4 shadow-sm">
+    <!-- Full name -->
     <div class="mb-3">
       <label class="form-label">Full Name</label>
-      <input type="text" class="form-control" name="fullname" placeholder="e.g. John" required>
+      <input type="text" class="form-control" name="fullname" placeholder="e.g. Monday Blues" required>
     </div>
 
+    <!-- Email -->
     <div class="mb-3">
       <label class="form-label">Email</label>
-      <input type="email" class="form-control" name="email" placeholder="e.g. John@MondayBlues.com" required>
+      <input type="email" class="form-control" name="email" placeholder="e.g. user@MondayBlues.com" required>
     </div>
 
+    <!-- Temporary password -->
     <div class="mb-3">
       <label class="form-label">Temporary Password</label>
       <input type="text" class="form-control" name="password" placeholder="Temporary password for user" required>
-      <div class="form-text">Temporary password for user to login. User is expected to change their own password upon login.</div>
+      <div class="form-text">Temporary password meant to be used for user login. User is expected to change their own password upon login.</div>
     </div>
 
+    <!-- Select Role -->
     <div class="mb-4">
       <label class="form-label">Role</label>
-      <select class="form-select" name="role" required>
+      <select class="form-select" name="role" id="roleSelect" required>
         {% for r in allowed_roles %}
           <option value="{{ r }}">{{ r }}</option>
         {% endfor %}
       </select>
     </div>
 
-    <div class="mb-5">
-    <label class="form-label">Status</label>
-    <select class="form-select" name="status" required>
-        {% for s in allowed_statuses %}
-        <option value="{{ s }}">{{ s }}</option>
+    <!-- For Volunteer Users: Select Service Category -->
+    <div class="mb-4" id="volCategoryBlock" style="display:none;">
+      <label class="form-label">Select Service Category</label>
+      <select class="form-select" name="category_id" id="categorySelect">
+        <option value=""> Select a category </option>
+        {% for c in categories %}
+          <option value="{{ c.id }}">{{ c.name }}</option>
         {% endfor %}
-    </select>
+      </select>
     </div>
 
+    <!-- Select Status -->
+    <div class="mb-5">
+      <label class="form-label">Status</label>
+      <select class="form-select" name="status" required>
+        {% for s in allowed_statuses %}
+          <option value="{{ s }}">{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
 
+    <!-- Actions -->
     <div class="d-flex gap-2">
       <a class="btn btn-outline-secondary" href="{{ url_for('admin.dashboard') }}">Cancel</a>
       <button type="submit" class="btn btn-primary">Create User</button>
     </div>
   </form>
 </div>
+
+<!-- Volunteer Category Selection inline script: hide category for Volunteer -->
+<script>
+  (function () {
+    const roleSel = document.getElementById('roleSelect');
+    const volBlock = document.getElementById('volCategoryBlock');
+    const catSel = document.getElementById('categorySelect');
+
+    function updateVisibility() {
+      const isVolunteer = roleSel.value === 'Volunteer';
+      volBlock.style.display = isVolunteer ? '' : 'none';
+      if (catSel) {
+        if (isVolunteer) {
+          catSel.setAttribute('required', 'required');
+        } else {
+          catSel.removeAttribute('required');
+          catSel.value = ''; // clear selection if switching to other roles
+        }
+      }
+    }
+
+    roleSel.addEventListener('change', updateVisibility);
+    updateVisibility(); // initialise when loadiang
+  })();
+</script>
 {% endblock %}

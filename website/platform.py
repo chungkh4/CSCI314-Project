@@ -139,49 +139,71 @@ def add_category():
     return redirect(dashboard)
 
 
-### edit volunteer service category ###
+### Edit volunteer service category ###
+
+def validateCategoryInput(name: str, description: str) -> tuple[bool, str, str]:
+    name = (name or '').strip()
+    description = (description or '').strip()
+    if not name:
+        return False, '', description
+    normalized_name = ' '.join(name.split())
+    return True, normalized_name, description
+
+# entity validation check
+def existsByName(session, Category, name: str, exclude_id: int | None = None) -> bool:
+    q = session.execute(
+        db.select(Category.id)
+          .where(func.lower(Category.name) == name.lower())
+    )
+    found_id = q.scalar()
+    return bool(found_id and found_id != exclude_id)
+
+def editCategory(cat, name: str, description: str) -> None:
+    cat.name = name
+    cat.description = description if description else None
+
+# routing
 @platform.route('/category/<int:category_id>/edit', methods=['POST'])
 @login_required
 def edit_category(category_id):
-    if current_user.role != 'Platform Manager' or current_user.status != 'Active':
-        flash('Access denied.', 'danger')
-        return redirect(url_for('platform.platform_manager_dashboard'))
 
-    from .models import Category
-    from . import db
-
-    name = (request.form.get('name') or '').strip()
-    description = (request.form.get('description') or '').strip()
-
-    if not name:
-        flash('Category name is required.', 'warning')
-        return redirect(url_for('platform.platform_manager_dashboard'))
+    ok, normalized_name, description = validateCategoryInput(
+        request.form.get('name'),
+        request.form.get('description')
+    )
+    if not ok:
+        flash('Category name is required.', "warning")
+        return render_template(url_for('platform.platform_manager_dashboard'))
 
     cat = Category.query.get_or_404(category_id)
-    cat.name = name
-    cat.description = description if description else None
+
+    # duplicate check is performed only if the category name field was changed
+    if normalized_name.lower() != (cat.name or '').strip().lower():
+        if existsByName(db.session, Category, normalized_name, exclude_id=cat.id):
+            flash(f'Category "{normalized_name}" already exists.', 'danger')
+            return redirect(url_for('platform.platform_manager_dashboard'))
+
+    # successful validation checks = successful edit category
+    editCategory(cat, normalized_name, description)
 
     try:
         db.session.commit()
         flash('Category updated successfully.', 'success')
+    except IntegrityError:
+        db.session.rollback()
+        flash(f'Category "{normalized_name}" already exists.', 'danger')
     except Exception:
         db.session.rollback()
         flash('Error updating category. Please try again.', 'danger')
 
     return redirect(url_for('platform.platform_manager_dashboard'))
+#### edit category ####
 
 
-### delete volunteer service category ###
+### Delete volunteer service category ###
 @platform.route('/delete_category/<int:category_id>', methods=['POST'])
 @login_required
 def delete_category(category_id):
-   # platform manager only function: delete volunteer category 
-    if current_user.role != 'Platform Manager':
-        flash('Access denied. Platform Manager role required.', category='danger')
-        return redirect(url_for('views.home'))
-    if current_user.status != 'Active':
-        flash('Your account is not active. Access denied.', category='danger')
-        return redirect(url_for('views.home'))
 
     category = Category.query.get_or_404(category_id)
 
@@ -190,16 +212,16 @@ def delete_category(category_id):
     vol_q = Volunteer.query.filter_by(category_id=category.id)
     vol_count = vol_q.count()
 
-    # if there are requests linked to this category, block deletion (Request.category_id is NOT NULL)
+    # if there are existing PIN requests linked to this category; deletion failure
     if req_count > 0:
         flash(
-            f'Cannot delete "{category.name}" — there are {req_count} request(s) using this category. '
-            'Reassign or delete those requests first.', 
+            f'Cannot delete category:{category.name}!!! There are {req_count} request(s) using this category.'
+            'Reassign or delete those requests first before attempting to delete.', 
             'danger'
         )
         return redirect(url_for('platform.platform_manager_dashboard'))
 
-    # if volunteers are attached to category, remove their relation
+    # if volunteers are attached to category, remove their relation to the category
     if vol_count > 0:
         for v in vol_q.all():
             v.category_id = None
@@ -217,6 +239,7 @@ def delete_category(category_id):
         flash('Error deleting category. Please try again later.', 'danger')
 
     return redirect(url_for('platform.platform_manager_dashboard'))
+#### delete category ####
 
 
 # --- Reports: Generate & Export ---------------------------------------------

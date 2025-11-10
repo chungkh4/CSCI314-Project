@@ -209,3 +209,49 @@ def change_password():
         return redirect(url_for('views.home'))
 
     return render_template("pin_change_password.html", user=current_user)
+
+
+# Update Credentials for User Profiles Created by Admin
+@auth.route('/update-credentials', methods=['GET', 'POST'])
+@login_required
+def update_credentials():
+    if request.method == 'POST':
+
+        new_name = (request.form.get('new_name') or '').strip()
+        current_pw = request.form.get('current_password') or ''
+        new_pw1 = request.form.get('new_password1') or ''
+        new_pw2 = request.form.get('new_password2') or ''
+
+        # change name and all password fields
+        if not (new_name and current_pw and new_pw1 and new_pw2):
+            flash('Please fill in all fields.', 'danger')
+            return redirect(url_for('auth.update_credentials'))
+
+        if new_name.lower().startswith('temp-'):
+            flash('Please change your name', 'warning') 
+            #assume if the name still starts with temp- : user never change un
+            return redirect(url_for('auth.update_credentials'))
+
+        # validate pw change
+        if not check_password_hash(current_user.password, current_pw):
+            flash('Current password is incorrect.', 'danger')
+            return redirect(url_for('auth.update_credentials'))
+
+        if new_pw1 != new_pw2:
+            flash('New passwords do not match.', 'danger')
+            return redirect(url_for('auth.update_credentials'))
+
+        if len(new_pw1) < 7:
+            flash('New password must be at least 7 characters.', 'danger')
+            return redirect(url_for('auth.update_credentials'))
+
+        # apply update to database
+        current_user.name = new_name
+        current_user.password = generate_password_hash(new_pw1, method='pbkdf2:sha256')
+        db.session.commit()
+
+        flash('Username and password has been updated successfully.', 'success')
+        return redirect(url_for('views.home'))
+
+    return render_template('update_credentials.html', user=current_user)
+
