@@ -212,46 +212,79 @@ def change_password():
 
 
 # Update Credentials for User Profiles Created by Admin
+TEMP_PREFIX = "temp-"
+
+## entity-facing functions ##
+def temp_name_check(name: str) -> bool: 
+    return (name or "").lower().startswith(TEMP_PREFIX)
+
+def verify_currentPW_check(user, current_pw: str) -> bool:
+    return check_password_hash(user.password, current_pw or "")
+
+def strong_PW_check(pw: str) -> bool:
+    return pw is not None and len(pw) >= 7
+
+def passwords_match_check(a: str, b: str) -> bool:
+    return (a or "") == (b or "")
+
+def update_user_credentials(db, user, new_name: str, new_pw: str):
+    user.name = new_name
+    user.password = generate_password_hash(new_pw, method='pbkdf2:sha256')
+    db.session.commit()
+    return user
+
+## boundary+controller-facing functions ##
+def render_update_credentials_form(user):
+    return user  
+
+def read_update_credentials_form(db, user, form):
+    # read inputs
+    new_name = (form.get('new_name') or '').strip()
+    current_pw = form.get('current_password') or ''
+    new_pw1 = form.get('new_password1') or ''
+    new_pw2 = form.get('new_password2') or ''
+
+    # alternative flow 3a) validation check: all fields need to be filled
+    if not (new_name and current_pw and new_pw1 and new_pw2):
+        return False, ("Please fill in all fields.", "danger"), user
+
+    # user MUST change username; name must not keep 'temp-' prefix
+    # alternative flow 3b) name not changed
+    if temp_name_check(new_name):
+        return False, ("Please change your name.", "warning"), user
+
+    # verify current password check
+    # alternative flow 3c) current password mistmatch
+    if not verify_currentPW_check(user, current_pw):
+        return False, ("Current password is incorrect.", "danger"), user
+
+    # new password match + strength
+    # alternative flow 3d) new pw don't matcch
+    # alternative flow 3d) weak new pw
+    if not passwords_match_check(new_pw1, new_pw2):
+        return False, ("New passwords do not match.", "danger"), user
+    if not strong_PW_check(new_pw1):
+        return False, ("New password must be at least 7 characters.", "danger"), user
+
+    # stores the data into db
+    try:
+        update_user_credentials(db, user, new_name, new_pw1)
+    except Exception as e:
+        db.session.rollback()
+        return False, (f"Error updating credentials: {e}", "danger"), user
+
+    return True, ("Username and password have been updated successfully.", "success"), user
+
+## routing
 @auth.route('/update-credentials', methods=['GET', 'POST'])
 @login_required
 def update_credentials():
-    if request.method == 'POST':
+    if request.method == 'GET':
+        user = render_update_credentials_form(current_user)
+        return render_template('update_credentials.html', user=user)
 
-        new_name = (request.form.get('new_name') or '').strip()
-        current_pw = request.form.get('current_password') or ''
-        new_pw1 = request.form.get('new_password1') or ''
-        new_pw2 = request.form.get('new_password2') or ''
-
-        # change name and all password fields
-        if not (new_name and current_pw and new_pw1 and new_pw2):
-            flash('Please fill in all fields.', 'danger')
-            return redirect(url_for('auth.update_credentials'))
-
-        if new_name.lower().startswith('temp-'):
-            flash('Please change your name', 'warning') 
-            #assume if the name still starts with temp- : user never change un
-            return redirect(url_for('auth.update_credentials'))
-
-        # validate pw change
-        if not check_password_hash(current_user.password, current_pw):
-            flash('Current password is incorrect.', 'danger')
-            return redirect(url_for('auth.update_credentials'))
-
-        if new_pw1 != new_pw2:
-            flash('New passwords do not match.', 'danger')
-            return redirect(url_for('auth.update_credentials'))
-
-        if len(new_pw1) < 7:
-            flash('New password must be at least 7 characters.', 'danger')
-            return redirect(url_for('auth.update_credentials'))
-
-        # apply update to database
-        current_user.name = new_name
-        current_user.password = generate_password_hash(new_pw1, method='pbkdf2:sha256')
-        db.session.commit()
-
-        flash('Username and password has been updated successfully.', 'success')
+    ok, (text, level), user = read_update_credentials_form(db, current_user, request.form)
+    flash(text, level)
+    if ok:
         return redirect(url_for('views.home'))
-
-    return render_template('update_credentials.html', user=current_user)
-
+    return render_template('update_credentials.html', user=user)

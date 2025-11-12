@@ -1,14 +1,9 @@
 from flask import Blueprint, render_template, redirect, request, url_for, flash, jsonify
 from sqlalchemy import text
 from flask_login import login_required, current_user
-from .models import User, Request
+from .models import User, Request, Category, Volunteer, Csr
 from . import db
 from werkzeug.security import generate_password_hash
-# website/admin.py
-from flask import Blueprint, render_template, request, redirect, url_for, flash
-from flask_login import login_required
-from . import db
-from .models import User, Category, Volunteer, Csr   # <-- add this line
 
 
 admin = Blueprint('admin', __name__)
@@ -42,34 +37,67 @@ def suspend_user(id):
     flash(f"{user.name} suspended.", "warning")
     return redirect(url_for('admin.dashboard'))
 
+
+### fixed: name and sequence diagram inconsistency 
+### edit user profile ###
+## entity-facing functions ##
+def find_userID(User, user_id: int):
+    return User.query.get_or_404(user_id)
+
+def find_user_email(User, email: str):
+    return User.query.filter_by(email=email).first()
+
+## boundary+controller-facing functions ##
+def update_user_profile(db, user, name: str, email: str):
+    user.name = name
+    user.email = email  
+    db.session.commit()
+    return user
+
+def render_edit_user_form(User, user_id: int):
+    user = find_userID(User, user_id)
+    return user
+
+def read_edit_user_form(db, User, user_id: int, form):
+    # read inputs
+    user = find_userID(User, user_id)
+    name  = (form.get('name')  or '').strip()
+    email = (form.get('email') or '').strip()
+
+    # alternative flow 4a) validation check: all fields need to be filled
+    if not name or not email:
+        return False, ("Please fill out all required fields.", "warning"), user
+
+    # alternative flow 4b) validation check: no duplicate email
+    existing = find_user_email(User, email)
+    if existing and existing.id != user.id:
+        return False, ("Email is already in use by another user.", "warning"), user
+
+    # stores the data into db
+    try:
+        update_user_profile(db, user, name, email)
+    except Exception as e:
+        db.session.rollback()
+        return False, (f"Error updating profile: {e}", "danger"), user
+
+    return True, ("Profile updated successfully!", "success"), user
+
+## routing
 @admin.route('/edit-profile/<int:user_id>', methods=['GET', 'POST'])
-# @login_required
+@login_required  
 def edit_profile(user_id):
-    # assume page alreaday enforces only user admin can access admin dashboard
-    user = User.query.get_or_404(user_id)
+    if request.method == 'GET':
+        user = render_edit_user_form(User, user_id)
+        return render_template('edit_profile.html', user=user)
 
-    if request.method == 'POST':
-        name = request.form.get('name')
-        email = request.form.get('email')
-
-        if not name or not email:
-            flash("Please fill out all required fields.", "warning")
-            return redirect(url_for('views.edit_profile'))
-
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user and existing_user.id != user.id:
-            flash("Email is already in use by another user.", "warning")
-            return render_template('edit_profile.html', user=user)
-
-        # Update user info
-        user.name = name
-        user.email = email
-        db.session.commit()
-
-        flash("Profile updated successfully!", "success")
+    ok, (text, level), user = read_edit_user_form(db, User, user_id, request.form)
+    flash(text, level)
+    if ok:
         return redirect(url_for('admin.dashboard'))
 
+    # form re-render upon failure, use same userID
     return render_template('edit_profile.html', user=user)
+
 
 @admin.route('/admin/user/<int:user_id>/delete')
 def delete_user(user_id):
@@ -139,14 +167,15 @@ def clear_database():
         return jsonify({"error": str(e)}), 500
 
 
-### Create User Profiles for PIN/CSR Rep/Platform Manager/Volunteer with "temporary" password ###"
-ALLOWED_ROLES = {"CSR", "Platform Manager", "Volunteer", "PIN"}
+### fixed: name and sequence diagram inconsistency 
+# Create User Profiles for PIN/CSR Rep/Platform Manager/Volunteer with "temporary" password ###"
+## entity-facing functions ##
+ALLOWED_ROLES = {"CSR", "Platform Manager", "Volunteer", "PIN"}  
 ALLOWED_STATUSES = {"Active", "Pending", "Suspended"}
-#fallback just in case
+#fallback roles and status established
 TEMP_PREFIX = "temp-" #"temp-" associated to new "temp" user profiles created
-    
 
-def get_allowed_roles():
+def get_allowed_roles(db, User):
     try:
         rows = db.session.execute(
             db.select(User.role).distinct().order_by(User.role)
@@ -154,14 +183,11 @@ def get_allowed_roles():
         db_roles = [r[0] for r in rows if r[0]]
     except Exception:
         db_roles = []
+    roles = sorted(set(db_roles).union(ALLOWED_ROLES))
+    roles = [r for r in roles if r.lower() != "admin"]   # NO ADMIN 
+    return roles or ['CSR', 'Platform Manager', 'Volunteer', 'PIN']
 
-    roles = sorted(set(db_roles).union(ALLOWED_ROLES)) 
-    roles = [r for r in roles if r.lower() != "admin"] #role admin not allowed.
-    
-    return roles
-
-
-def get_allowed_statuses():
+def get_allowed_statuses(db, User):
     try:
         rows = db.session.execute(
             db.select(User.status).distinct().order_by(User.status)
@@ -169,79 +195,110 @@ def get_allowed_statuses():
         db_statuses = [s[0] for s in rows if s[0]]
     except Exception:
         db_statuses = []
-    return sorted(set(db_statuses).union(ALLOWED_STATUSES))
+    statuses = sorted(set(db_statuses).union(ALLOWED_STATUSES))
+    return statuses or ['Pending', 'Active', 'Suspended']
+
+def email_duplicate_check(db, User, email: str) -> bool:
+    return db.session.query(db.exists().where(User.email == email)).scalar()
+
+def enforce_temp_display_name(fullname: str) -> str:
+    return fullname if fullname.lower().startswith(TEMP_PREFIX) else f"{TEMP_PREFIX}{fullname}"
+
+def category_exists_check(Category, category_id: int) -> bool:
+    return bool(Category.query.get(category_id))
 
 
-TEMP_PREFIX = "temp-"  
+## boundary+controller-facing functions ##
+def render_create_user_form(db, User, Category):
+    roles = get_allowed_roles(db, User)
+    statuses = get_allowed_statuses(db, User)
+    categories = Category.query.order_by(Category.name.asc()).all()
+    return roles, statuses, categories
+
+def read_user_form(db, User, Volunteer, Csr, Category, form):
+    # read inputs
+    fullname = (form.get('fullname') or '').strip()
+    email    = (form.get('email') or '').strip()
+    temp_pw  = (form.get('password') or '').strip()
+    role     = (form.get('role') or '').strip()
+    status   = (form.get('status') or '').strip()
+
+    cid_raw = (form.get('category_id') or '').strip()
+    category_id = int(cid_raw) if cid_raw.isdigit() else None
+
+    # alternative flow 4a) validation check: all fields need to be filled
+    if not (fullname and email and temp_pw and role and status):
+        return False, ("Please fill all fields.", "warning")
+
+    # enforce allowed role/status
+    allowed_roles = get_allowed_roles(db, User)
+    allowed_statuses = get_allowed_statuses(db, User)
+    if role not in allowed_roles:
+        return False, (f"{role} role is not allowed.", "danger")
+    if status not in allowed_statuses:
+        return False, (f"{status} is not allowed.", "danger")
+
+    # alternative flow 4b) enforce password strength: min 7 characters (align with other user registration feature)
+    if len(temp_pw) < 7:
+        return False, ('New password must be at least 7 characters.', "warning")
+
+    # alternative flow 4c) validation check: no duplicate email
+    if email_duplicate_check(db, User, email):
+        return False, ("Email is already in use.", "danger")
+
+    # alternative flow 3b) ensure that volunteer role has associated category
+    if role == 'Volunteer':
+        if not category_id:
+            return False, ("Please select a service category for Volunteer.", "warning")
+        if not category_exists_check(Category, category_id):
+            return False, ("Selected service category was not found.", "danger")
+
+    # stores the data into db
+    display_name = enforce_temp_display_name(fullname)
+    user = User(
+        name=display_name,
+        email=email,  
+        password=generate_password_hash(temp_pw, method='pbkdf2:sha256'),
+        role=role,
+        status=status,
+    )
+    db.session.add(user)
+    db.session.flush()  # get user.id
+
+    if role == 'Volunteer':
+        db.session.add(Volunteer(user_id=user.id, category_id=category_id))
+    elif role == 'CSR':
+        db.session.add(Csr(user_id=user.id, name=fullname, role=role))
+
+    db.session.commit()
+    return True, (f"User: {fullname} ({role}) has successfully been created with status: {status}.", "success")
+
+
+## routing ##
 @admin.route('/admin/create-user', methods=['GET', 'POST'])
 @login_required
 def create_user():
-    allowed_roles = get_allowed_roles() or ['CSR', 'Platform Manager', 'Volunteer', 'PIN']
-    allowed_statuses = get_allowed_statuses() or ['Pending', 'Active', 'Suspended']
-    categories = Category.query.order_by(Category.name.asc()).all()
-
-    if request.method == 'POST':
-        fullname = (request.form.get('fullname') or '').strip()
-        email = (request.form.get('email') or '').strip()
-        temp_pw = (request.form.get('password') or '').strip()
-        role = (request.form.get('role') or '').strip()
-        status = (request.form.get('status') or '').strip()
-
-        category_id_raw = (request.form.get('category_id') or '').strip()
-        category_id = int(category_id_raw) if category_id_raw.isdigit() else None
-
-        # basic validation check
-        if not (fullname and email and temp_pw and role and status):
-            flash("Please fill all fields.", "warning")
-            return redirect(url_for('admin.create_user'))
-        if role not in allowed_roles:
-            flash("{role} role is not allowed.", "danger")
-            return redirect(url_for('admin.create_user'))
-        if status not in allowed_statuses:
-            flash("{status} is not allowed.", "danger")
-            return redirect(url_for('admin.create_user'))
-        if len(temp_pw) < 7:
-            flash('New password must be at least 7 characters.', "warning")
-            return redirect(url_for('admin.create_user'))
-        if User.query.filter_by(email=email).first():
-            flash("Email is already in use.", "danger")
-            return redirect(url_for('admin.create_user'))
-
-        # ensure that volunteer role has associated category
-        if role == 'Volunteer':
-            if not category_id:
-                flash("Please select a service category for Volunteer.", "warning")
-                return redirect(url_for('admin.create_user'))
-            if not Category.query.get(category_id):
-                flash("Selected service category was not found.", "danger")
-                return redirect(url_for('admin.create_user'))
-
-        display_name = fullname
-        if not display_name.lower().startswith(TEMP_PREFIX):
-            display_name = f"{TEMP_PREFIX}{display_name}"
-
-        user = User(
-            name=display_name,
-            email=email,
-            password=generate_password_hash(temp_pw, method='pbkdf2:sha256'),
-            role=role,
-            status=status,
+    if request.method == 'GET':
+        roles, statuses, categories = render_create_user_form(db, User, Category)   
+        return render_template(
+            'admin_dashboard_create_user_profile.html',
+            allowed_roles=roles,
+            allowed_statuses=statuses,
+            categories=categories
         )
-        db.session.add(user)
-        db.session.flush()  
 
-        if role == 'Volunteer':
-            db.session.add(Volunteer(user_id=user.id, category_id=category_id))
-        elif role == 'CSR':
-            db.session.add(Csr(user_id=user.id, name=fullname, role=role))
-
-        db.session.commit()
-        flash(f"User {fullname} ({role}) has successfully been created with status: {status}.", "success")
+    ok, (text, level) = read_user_form(
+        db=db, User=User, Volunteer=Volunteer, Csr=Csr, Category=Category, form=request.form
+    )
+    flash(text, level)
+    if ok:
         return redirect(url_for('admin.dashboard'))
 
+    # form re-render upon fail
+    roles, statuses, categories = render_create_user_form(db, User, Category)
     return render_template(
         'admin_dashboard_create_user_profile.html',
-        allowed_roles=allowed_roles,
-        allowed_statuses=allowed_statuses,
+        allowed_roles=roles,
+        allowed_statuses=statuses,
         categories=categories
     )
